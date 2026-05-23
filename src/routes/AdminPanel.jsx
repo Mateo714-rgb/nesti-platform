@@ -163,6 +163,7 @@ export default function AdminPanel() {
           { id: 'rooms', label: 'Habitaciones' },
           { id: 'dashboard', label: 'Dashboard' },
           { id: 'config', label: 'Configuración' },
+          { id: 'affiliates', label: 'Afiliados' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -232,6 +233,11 @@ export default function AdminPanel() {
             </>
           )}
         </div>
+      )}
+
+      {/* ===== AFILIADOS ===== */}
+      {tab === 'affiliates' && (
+        <AffiliatesSection />
       )}
 
       {/* ===== CONFIGURACIÓN ===== */}
@@ -497,6 +503,82 @@ function ConfigSection() {
               className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm">+</button>
           </div>
         </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ===== AFILIADOS =====
+function AffiliatesSection() {
+  const [affiliates, setAffiliates] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      supabase.from('affiliates').select('*').order('created_at', { ascending: false }),
+      supabase.from('referrals').select('*').order('created_at', { ascending: false }),
+    ]).then(([affRes, refRes]) => {
+      if (affRes.data) setAffiliates(affRes.data)
+      if (refRes.data) {
+        refMap.current = {}
+        refRes.data.forEach(r => {
+          refMap.current[r.affiliate_id] = (refMap.current[r.affiliate_id] || 0) + 1
+        })
+      }
+      setLoading(false)
+    })
+  }, [])
+
+  const refMap = { current: {} }
+
+  if (loading) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-10 h-10 rounded-2xl bg-brand-100 animate-pulse mx-auto mb-3" />
+        <p className="text-sm text-gray-400">Cargando afiliados...</p>
+      </div>
+    )
+  }
+
+  if (affiliates.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-sm text-gray-400">No hay afiliados registrados.</p>
+      </div>
+    )
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pb-20">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-surface-3">
+              <th className="text-left text-xs text-gray-400 font-medium uppercase tracking-wider pb-3 pr-4">Fecha</th>
+              <th className="text-left text-xs text-gray-400 font-medium uppercase tracking-wider pb-3 pr-4">Nombre</th>
+              <th className="text-left text-xs text-gray-400 font-medium uppercase tracking-wider pb-3 pr-4">Email</th>
+              <th className="text-left text-xs text-gray-400 font-medium uppercase tracking-wider pb-3 pr-4">Código</th>
+              <th className="text-left text-xs text-gray-400 font-medium uppercase tracking-wider pb-3 pr-4">Refs</th>
+              <th className="text-left text-xs text-gray-400 font-medium uppercase tracking-wider pb-3">Pagos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {affiliates.map(a => (
+              <tr key={a.id} className="border-b border-surface-3 hover:bg-surface-1/50 transition-colors">
+                <td className="py-3 pr-4 text-gray-500 whitespace-nowrap">
+                  {new Date(a.created_at).toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit' })}
+                </td>
+                <td className="py-3 pr-4 font-medium text-gray-900">{a.nombre}</td>
+                <td className="py-3 pr-4">
+                  <a href={`mailto:${a.email}`} className="text-brand-600 hover:underline">{a.email}</a>
+                </td>
+                <td className="py-3 pr-4 font-mono text-xs text-gray-500">{a.ref_code}</td>
+                <td className="py-3 pr-4 text-gray-900 font-medium">{refMap.current[a.id] || 0}</td>
+                <td className="py-3 text-gray-500">{a.payout_email || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </motion.div>
   )

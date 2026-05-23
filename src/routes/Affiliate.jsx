@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
@@ -17,12 +17,18 @@ export default function Affiliate() {
   const [form, setForm] = useState({ nombre: '', email: '', payout_email: '' })
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
-  const [done, setDone] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [checking, setChecking] = useState(true)
 
-  if (user && done) {
-    navigate('/affiliate/dashboard', { replace: true })
-    return null
-  }
+  useEffect(() => {
+    if (!user) { setChecking(false); return }
+    supabase.from('affiliates').select('id').eq('user_id', user.id).maybeSingle().then(({ data }) => {
+      if (data) navigate('/affiliate/dashboard', { replace: true })
+      else setChecking(false)
+    })
+  }, [user])
+
+  if (checking) return null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -46,7 +52,13 @@ export default function Affiliate() {
 
     const refCode = genRefCode()
     const email = user ? user.email : form.email
-    const nombre = user ? (user.user_metadata?.nombre || form.nombre) : form.nombre
+    const nombre = user ? (user.user_metadata?.nombre || form.nombre || user.email?.split('@')[0]) : form.nombre
+
+    if (!nombre.trim()) {
+      setError('El nombre es requerido.')
+      setSending(false)
+      return
+    }
 
     const { error: insertErr } = await supabase.from('affiliates').insert({
       user_id: user?.id || null,
@@ -57,13 +69,32 @@ export default function Affiliate() {
     })
 
     if (insertErr) {
-      setError(insertErr.code === '23505' ? 'Ya estás registrado como afiliado.' : 'Error al registrarte. Intenta de nuevo.')
+      setError(insertErr.code === '23505'
+        ? 'Ya estás registrado como afiliado. Redirigiendo al dashboard...'
+        : 'Error al registrarte. Intenta de nuevo.')
       setSending(false)
       return
     }
 
-    setDone(true)
+    setSuccess(true)
     setSending(false)
+    setTimeout(() => navigate('/affiliate/dashboard', { replace: true }), 1500)
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 via-white to-surface-2 p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto mb-5">
+            <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8 text-emerald-500">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h2 className="font-display text-xl font-semibold text-gray-900 mb-2">Afiliado registrado</h2>
+          <p className="text-sm text-gray-500">Redirigiendo a tu dashboard...</p>
+        </motion.div>
+      </div>
+    )
   }
 
   return (
@@ -100,7 +131,14 @@ export default function Affiliate() {
               {user ? 'Completá tu registro' : 'Creá tu cuenta de afiliado'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-3.5">
-              {!user && (
+              {user ? (
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Nombre</label>
+                  <input type="text" value={form.nombre} onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))}
+                    placeholder={user.email?.split('@')[0]}
+                    className="w-full text-sm bg-surface-1 rounded-xl px-4 py-3 border border-surface-3 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all placeholder:text-gray-300" />
+                </div>
+              ) : (
                 <>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">Nombre completo <span className="text-red-400">*</span></label>
