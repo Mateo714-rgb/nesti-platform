@@ -1,3 +1,5 @@
+import { useState, useEffect, useRef } from 'react'
+import { motion } from 'framer-motion'
 import { useAuth } from './lib/AuthContext'
 
 const svgs = {
@@ -200,29 +202,97 @@ function BetaBanner() {
   )
 }
 
+function useActiveSection() {
+  const [active, setActive] = useState('')
+  useEffect(() => {
+    const ids = ['video', 'features', 'how-it-works']
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) setActive(e.target.id)
+      })
+    }, { rootMargin: '-40% 0px -55% 0px' })
+    ids.forEach((id) => {
+      const el = document.getElementById(id)
+      if (el) observer.observe(el)
+    })
+    return () => observer.disconnect()
+  }, [])
+  return active
+}
+
+const testimonials = [
+  {
+    initials: 'MR',
+    hotel: 'Hotel Paraíso del Mar',
+    flag: '🇲🇽',
+    rating: 5,
+    quote: 'Nesti transformó la experiencia de nuestros huéspedes. Ahora todo lo solicitan desde el QR sin pasar por recepción.'
+  },
+  {
+    initials: 'CL',
+    hotel: 'Lodge Bosque Nublado',
+    flag: '🇨🇷',
+    rating: 5,
+    quote: 'Implementarlo fue increíblemente fácil. En 30 minutos ya estábamos funcionando. Nuestros huéspedes aman la comodidad.'
+  },
+  {
+    initials: 'AV',
+    hotel: 'Hotel Boutique Central',
+    flag: '🇪🇨',
+    rating: 5,
+    quote: 'El panel de recepción en tiempo real nos permite gestionar el servicio mucho más rápido. Recomendado al 100%.'
+  }
+]
+
+const pricingFeatures = [
+  'Portal del huésped vía QR',
+  'Panel de recepción en tiempo real',
+  'Catálogo de servicios ilimitado',
+  'Analytics e informes de ocupación',
+  'Soporte técnico prioritario'
+]
+
 export default function Landing() {
   const { user } = useAuth()
+  const activeSection = useActiveSection()
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-surface-0 via-brand-50/30 to-surface-2 relative">
       <Particles />
 
+      {/* Decorative gradient orb */}
+      <div className="fixed top-1/4 -left-48 w-[600px] h-[600px] rounded-full bg-brand-200/30 blur-[120px] pointer-events-none animate-pulse-soft" style={{ animationDuration: '8s' }} />
+
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-surface-0/80 backdrop-blur-xl border-b border-surface-3">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white">
+          <a href="/" className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white">
                 <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
                 <rect x="9" y="12" width="6" height="6" rx="1" fill="currentColor" opacity="0.7"/>
               </svg>
             </div>
-            <span className="font-display font-semibold text-gray-900">Nesti</span>
+            <span className="font-display font-semibold text-lg text-gray-900">Nesti</span>
           </a>
           <div className="hidden sm:flex items-center gap-8">
-            <SmoothLink href="#video" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Video</SmoothLink>
-            <SmoothLink href="#features" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Funcionalidades</SmoothLink>
-            <SmoothLink href="#how-it-works" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Como funciona</SmoothLink>
+            {[
+              { href: '#video', label: 'Video' },
+              { href: '#features', label: 'Funcionalidades' },
+              { href: '#how-it-works', label: 'Cómo funciona' },
+            ].map((l) => (
+              <SmoothLink key={l.href} href={l.href}
+                className={`relative text-sm transition-colors ${
+                  activeSection === l.href.slice(1)
+                    ? 'text-brand-600 font-semibold'
+                    : 'text-gray-500 hover:text-gray-900'
+                }`}>
+                {l.label}
+                {activeSection === l.href.slice(1) && (
+                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand-600" />
+                )}
+              </SmoothLink>
+            ))}
             <a href="/affiliate" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Afiliados</a>
             {user ? (
               <a href="/admin" className="text-sm font-semibold text-brand-600 hover:text-brand-700 transition-colors">Panel</a>
@@ -237,7 +307,7 @@ export default function Landing() {
       <BetaBanner />
 
       {/* Hero */}
-      <section className="relative z-10 pt-24 pb-20 px-6">
+      <section className="relative z-10 pt-24 pb-20 px-6 overflow-hidden">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           <div className="flex-1 text-center lg:text-left">
             <FadeIn delay={0.1}>
@@ -270,8 +340,8 @@ export default function Landing() {
                   </>
                 ) : (
                   <>
-                    <a href="/login" className="px-6 py-3 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 hover:-translate-y-0.5 active:translate-y-0">
-                      Acceder al panel
+                    <a href="/beta-register" className="px-6 py-3 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 hover:-translate-y-0.5 active:translate-y-0">
+                      Comenzar ahora
                     </a>
                     <SmoothLink href="#video" className="px-6 py-3 rounded-2xl text-sm font-medium bg-surface-2 text-gray-600 hover:bg-surface-3 transition-all flex items-center gap-2">
                       <Icon name="play" className="w-4 h-4" />
@@ -282,15 +352,18 @@ export default function Landing() {
               </div>
             </FadeIn>
           </div>
-          <div className="flex-1 max-w-md lg:max-w-none">
-            <FadeIn delay={0.3}>
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-200/40 to-brand-400/10 rounded-4xl blur-3xl transition-all duration-700 group-hover:scale-110" />
-                <div className="relative glass rounded-4xl p-6 sm:p-8 shadow-float transition-all duration-500 group-hover:shadow-float group-hover:-translate-y-1">
-                  <div className="bg-surface-0 rounded-3xl p-6 sm:p-8 border border-surface-3">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white">
+          <div className="flex-1 max-w-sm lg:max-w-none">
+            <motion.div
+              animate={{ y: [-6, 6, -6] }}
+              transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity }}
+            >
+              <div className="relative">
+                <div className="absolute inset-0 bg-brand-400/20 rounded-[40px] blur-[60px] scale-110" />
+                <div className="relative glass rounded-[32px] p-4 sm:p-5 shadow-float">
+                  <div className="bg-surface-0 rounded-3xl p-5 sm:p-6 border border-surface-3">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" fill="none" className="w-[18px] h-[18px] text-white">
                           <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
                         </svg>
                       </div>
@@ -304,24 +377,71 @@ export default function Landing() {
                         <span className="w-2 h-2 rounded-full bg-red-300" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="grid grid-cols-2 gap-2.5 mb-3">
                       {['Limpieza', 'Room Service', 'Toallas', 'Desayuno'].map((item) => (
-                        <div key={item} className="rounded-2xl bg-brand-50 border border-brand-100 px-4 py-3 text-center hover:bg-brand-100 transition-colors">
+                        <div key={item} className="rounded-2xl bg-brand-50 border border-brand-100 px-3.5 py-2.5 text-center hover:bg-brand-100 transition-colors cursor-pointer">
                           <p className="text-xs font-medium text-brand-700">{item}</p>
                         </div>
                       ))}
                     </div>
-                    <div className="rounded-2xl bg-brand-600 p-4 flex items-center justify-between transition-all hover:bg-brand-700">
+                    <div className="rounded-2xl bg-brand-600 p-3.5 flex items-center justify-between transition-all hover:bg-brand-700 cursor-pointer">
                       <div>
                         <p className="text-xs text-white/70">Solicitar ahora</p>
                         <p className="text-sm font-semibold text-white">Asistencia en habitacion</p>
                       </div>
-                      <Icon name="bell" className="text-white/80 w-8 h-8" />
+                      <Icon name="bell" className="text-white/80 w-7 h-7" />
                     </div>
                   </div>
                 </div>
               </div>
-            </FadeIn>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="relative z-10 py-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <FadeIn delay={0.1}>
+            <div className="text-center mb-10">
+              <p className="text-xs font-semibold text-brand-600 tracking-widest uppercase mb-3">Testimonios</p>
+              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 text-balance mb-3">
+                Lo que dicen nuestros primeros usuarios
+              </h2>
+              <p className="text-gray-500 max-w-lg mx-auto text-balance">
+                Hoteles que ya están usando Nesti durante la beta.
+              </p>
+            </div>
+          </FadeIn>
+          <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-none md:grid md:grid-cols-3">
+            {testimonials.map((t, i) => (
+              <motion.div
+                key={t.hotel}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ delay: i * 0.1, duration: 0.4 }}
+                className="glass rounded-3xl p-6 min-w-[280px] snap-start hover:shadow-glass-lg transition-all duration-300"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-sm font-semibold text-brand-700 shrink-0">
+                    {t.initials}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{t.hotel}</p>
+                    <p className="text-xs text-gray-400">{t.flag}</p>
+                  </div>
+                </div>
+                <div className="flex gap-0.5 mb-3">
+                  {Array.from({ length: t.rating }).map((_, s) => (
+                    <svg key={s} viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-amber-400">
+                      <path d="M10 1l2.39 4.84L17.6 6.7l-3.8 3.7.9 5.24L10 13.2l-4.7 2.44.9-5.24-3.8-3.7 5.21-.86L10 1z"/>
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed">"{t.quote}"</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -540,6 +660,48 @@ export default function Landing() {
                 className="inline-flex px-6 py-3 rounded-2xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5">
                 Quiero ser afiliado
               </a>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="relative z-10 py-16 px-6">
+        <div className="max-w-md mx-auto">
+          <FadeIn delay={0.1}>
+            <div className="text-center mb-8">
+              <p className="text-xs font-semibold text-brand-600 tracking-widest uppercase mb-3">Precios</p>
+              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 text-balance mb-3">
+                Sin costo durante la beta
+              </h2>
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.2}>
+            <div className="glass rounded-4xl p-8 sm:p-10 shadow-float border border-brand-100 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-brand-100/40 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-100/20 rounded-full blur-3xl" />
+              <div className="relative text-center">
+                <p className="text-lg text-gray-400 line-through font-medium mb-1">$49 / mes</p>
+                <p className="font-display text-5xl font-bold text-brand-600 mb-2">GRATIS</p>
+                <p className="text-sm text-gray-500 mb-6">durante la beta — licencia de por vida incluida</p>
+                <ul className="text-left space-y-3 mb-8">
+                  {pricingFeatures.map((f) => (
+                    <li key={f} className="flex items-center gap-3 text-sm text-gray-700">
+                      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-brand-500 shrink-0">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                        <path d="M8 12l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                {!user && (
+                  <a href="/beta-register"
+                    className="inline-flex w-full justify-center px-8 py-3.5 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 hover:-translate-y-0.5">
+                    Reclamar acceso gratuito
+                  </a>
+                )}
+              </div>
             </div>
           </FadeIn>
         </div>

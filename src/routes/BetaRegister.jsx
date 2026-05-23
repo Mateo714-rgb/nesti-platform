@@ -39,7 +39,7 @@ export default function BetaRegister() {
     })
 
     if (err) {
-      setError('Error al enviar. Intenta de nuevo.')
+      setError(err.message || 'Error al enviar. Intenta de nuevo.')
       setSending(false)
       return
     }
