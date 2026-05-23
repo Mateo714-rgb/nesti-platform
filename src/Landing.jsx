@@ -552,6 +552,9 @@ export default function Landing() {
           <p className="text-xs text-gray-400 text-center">
             2026 Nesti — Guest Experience Platform. Todos los derechos reservados.
           </p>
+          <p className="text-xs text-gray-300 text-center">
+            Desarrollado por <a href="https://verticedigital.ec" target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:text-brand-600 transition-colors font-medium">Vértice Digital</a>
+          </p>
         </div>
       </footer>
     </div>
