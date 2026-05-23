@@ -33,6 +33,9 @@ export default function GuestRoom() {
   const [tab, setTab] = useState('services')
   const [showCustom, setShowCustom] = useState(false)
   const [novedades, setNovedades] = useState([])
+  const [notificaciones, setNotificaciones] = useState([])
+  const [showNotis, setShowNotis] = useState(false)
+  const [notiCount, setNotiCount] = useState(0)
 
   useEffect(() => {
     supabase
@@ -76,6 +79,57 @@ export default function GuestRoom() {
         if (data) setNovedades(data)
       })
   }, [])
+
+  // Notifications
+  useEffect(() => {
+    if (!room?.id) return
+
+    const fetchNotis = () => {
+      supabase
+        .from('notificaciones_habitacion')
+        .select('*')
+        .eq('room_id', room.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+        .then(({ data }) => {
+          if (data) {
+            setNotificaciones(data)
+            setNotiCount(data.filter(n => !n.leido).length)
+          }
+        })
+    }
+
+    fetchNotis()
+
+    const channel = supabase
+      .channel(`notis-${room.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notificaciones_habitacion',
+        filter: `room_id=eq.${room.id}`,
+      }, () => { fetchNotis() })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [room?.id])
+
+  const markLeidas = async () => {
+    if (notiCount === 0) return
+    await supabase
+      .from('notificaciones_habitacion')
+      .update({ leido: true })
+      .eq('room_id', room?.id)
+      .eq('leido', false)
+    setNotificaciones(prev => prev.map(n => ({ ...n, leido: true })))
+    setNotiCount(0)
+  }
+
+  const notiIconMap = {
+    servicio: '🛎️',
+    novedad: '📢',
+    sistema: '🔔',
+  }
 
   if (loading) {
     return (
@@ -139,9 +193,20 @@ export default function GuestRoom() {
                 <h1 className="font-display text-2xl font-semibold text-white leading-tight">{hotel.guestName} 👋</h1>
                 <p className="text-brand-200 text-sm mt-0.5">{today}</p>
               </div>
-              <div className="text-right">
-                <p className="text-brand-200 text-xs">Habitación</p>
-                <p className="font-display text-3xl font-semibold text-white">{room?.numero}</p>
+              <div className="text-right flex items-center gap-4">
+                <button onClick={() => { setShowNotis(!showNotis); if (!showNotis) markLeidas() }}
+                  className="relative w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center hover:bg-white/25 transition-all">
+                  <span className="text-lg">🔔</span>
+                  {notiCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-400 text-amber-900 text-[10px] font-bold flex items-center justify-center shadow-sm">
+                      {notiCount}
+                    </span>
+                  )}
+                </button>
+                <div>
+                  <p className="text-brand-200 text-xs">Habitación</p>
+                  <p className="font-display text-3xl font-semibold text-white">{room?.numero}</p>
+                </div>
               </div>
             </div>
 
@@ -382,6 +447,66 @@ export default function GuestRoom() {
                   </div>
                 </motion.div>
               ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Notifications panel */}
+        <AnimatePresence>
+          {showNotis && (
+            <motion.div
+              initial={{ opacity: 0, y: 300 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 300 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-50"
+            >
+              <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setShowNotis(false)} />
+              <div className="relative bg-white rounded-t-3xl max-h-[60vh] overflow-y-auto shadow-2xl">
+                <div className="sticky top-0 bg-white border-b border-surface-3 px-5 py-4 flex items-center justify-between rounded-t-3xl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🔔</span>
+                    <h3 className="font-display font-semibold text-gray-900">Notificaciones</h3>
+                  </div>
+                  <button onClick={() => setShowNotis(false)}
+                    className="text-xs text-gray-400 hover:text-gray-600 bg-surface-2 px-3 py-1.5 rounded-full transition-all">
+                    Cerrar
+                  </button>
+                </div>
+                <div className="px-5 pb-6 pt-3 space-y-2">
+                  {notificaciones.length === 0 ? (
+                    <div className="text-center py-10">
+                      <p className="text-3xl mb-2">🔕</p>
+                      <p className="text-sm text-gray-400">Sin notificaciones</p>
+                    </div>
+                  ) : (
+                    notificaciones.map((n, i) => (
+                      <motion.div
+                        key={n.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.03 }}
+                        className={`flex items-start gap-3 rounded-2xl p-4 transition-all ${
+                          n.leido ? 'bg-white border border-surface-3' : 'bg-brand-50 border border-brand-200'
+                        }`}>
+                        <span className="text-lg mt-0.5">{notiIconMap[n.tipo] || '🔔'}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-semibold ${n.leido ? 'text-gray-700' : 'text-gray-900'}`}>
+                            {n.titulo}
+                          </p>
+                          {n.mensaje && (
+                            <p className="text-xs text-gray-500 mt-0.5">{n.mensaje}</p>
+                          )}
+                          <p className="text-[10px] text-gray-400 mt-1.5">
+                            {new Date(n.created_at).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        {!n.leido && (
+                          <div className="w-2 h-2 rounded-full bg-brand-500 mt-1.5 shrink-0" />
+                        )}
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

@@ -374,11 +374,26 @@ export default function Reception() {
           check_out: form.check_out ? new Date(form.check_out).toISOString() : null,
         } : r
       ))
+      // Welcome notification
+      await supabase.from('notificaciones_habitacion').insert({
+        room_id: checkInRoom.id,
+        tipo: 'sistema',
+        titulo: '¡Bienvenido!',
+        mensaje: `Has hecho check-in en ${checkInRoom.nombre}. Escanea el código QR de tu habitación para acceder al portal de huéspedes.`,
+      })
     }
     setCheckInRoom(null)
   }
 
   const handleCheckOut = async () => {
+    // Goodbye notification before clearing
+    await supabase.from('notificaciones_habitacion').insert({
+      room_id: checkOutRoom.id,
+      tipo: 'sistema',
+      titulo: 'Check-out completado',
+      mensaje: 'Gracias por tu estadía. ¡Esperamos verte pronto!',
+    })
+
     await supabase.from('rooms').update({
       token_sesion_actual: null,
       huesped_nombre: null,
@@ -467,10 +482,21 @@ export default function Reception() {
   const advance = async (id, staffId) => {
     const req = requests.find(r => r.id === id)
     if (!req) return
-    const next = req.estado === 'pendiente' ? 'aceptado' : req.estado === 'aceptado' ? 'completado' : 'completado'
+    const next = req.estado === 'pendiente' ? 'aceptado' : 'completado'
     const updates = { estado: next }
     if (staffId) updates.asignado_a = staffId
     await supabase.from('solicitudes_servicio').update(updates).eq('id', id)
+
+    // Log notification
+    if (req.room_id) {
+      const notiMsg = next === 'aceptado'
+        ? { titulo: 'Solicitud en proceso', mensaje: `Tu solicitud de "${req.tipo_servicio}" está siendo atendida` }
+        : { titulo: 'Solicitud completada', mensaje: `Tu "${req.tipo_servicio}" está listo. ¡Disfrútalo!` }
+      await supabase.from('notificaciones_habitacion').insert({
+        room_id: req.room_id, tipo: 'servicio', ...notiMsg,
+      })
+    }
+
     setSelected(null)
   }
 

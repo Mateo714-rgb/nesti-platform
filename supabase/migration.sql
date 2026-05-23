@@ -35,6 +35,38 @@ INSERT INTO rooms (numero, nombre, tipo, descripcion, precio_noche) VALUES
   ('112', 'Cabaña del Bosque', 'Cabaña', 'Cabaña privada rodeada de naturaleza con fogatero exterior', 90.00)
 ON CONFLICT DO NOTHING;
 
+-- 6. Notificaciones de habitación
+CREATE TABLE IF NOT EXISTS notificaciones_habitacion (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL DEFAULT 'servicio' CHECK (tipo IN ('servicio', 'novedad', 'sistema')),
+  titulo TEXT NOT NULL,
+  mensaje TEXT DEFAULT '',
+  leido BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notificaciones_room ON notificaciones_habitacion(room_id);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_leido ON notificaciones_habitacion(room_id, leido);
+
+ALTER TABLE notificaciones_habitacion ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Notificaciones visibles para el huésped de la habitación"
+  ON notificaciones_habitacion FOR SELECT TO anon
+  USING (
+    room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL)
+  );
+
+CREATE POLICY "Notificaciones insertables por authenticated"
+  ON notificaciones_habitacion FOR INSERT TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Notificaciones actualizables por el huésped"
+  ON notificaciones_habitacion FOR UPDATE TO anon
+  USING (
+    room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL)
+  );
+
 -- 5. Perfiles de usuario (roles)
 CREATE TABLE IF NOT EXISTS perfiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
