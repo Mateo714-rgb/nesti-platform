@@ -223,6 +223,7 @@ export default function Landing() {
             <SmoothLink href="#video" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Video</SmoothLink>
             <SmoothLink href="#features" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Funcionalidades</SmoothLink>
             <SmoothLink href="#how-it-works" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Como funciona</SmoothLink>
+            <a href="/affiliate" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Afiliados</a>
             {user ? (
               <a href="/admin" className="text-sm font-semibold text-brand-600 hover:text-brand-700 transition-colors">Panel</a>
             ) : (
@@ -378,7 +379,7 @@ export default function Landing() {
                   </p>
                 </div>
                 {!user && (
-                  <a href="/login" className="shrink-0 px-6 py-3 rounded-2xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5">
+                  <a href="/beta-register" className="shrink-0 px-6 py-3 rounded-2xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5">
                     Reclamar acceso
                   </a>
                 )}
@@ -527,7 +528,7 @@ export default function Landing() {
                     Ir al panel de administracion
                   </a>
                 ) : (
-                  <a href="/login" className="inline-flex px-8 py-3.5 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 hover:-translate-y-0.5">
+                  <a href="/beta-register" className="inline-flex px-8 py-3.5 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 hover:-translate-y-0.5">
                     Comenzar ahora
                   </a>
                 )}

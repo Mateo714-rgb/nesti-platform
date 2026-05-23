@@ -7,6 +7,10 @@ import Reception from './routes/Reception'
 import QRPreview from './routes/QRPreview'
 import AdminPanel from './routes/AdminPanel'
 import Login from './routes/Login'
+import BetaRegister from './routes/BetaRegister'
+import BetaRegistrations from './routes/BetaRegistrations'
+import Affiliate from './routes/Affiliate'
+import AffiliateDashboard from './routes/AffiliateDashboard'
 import Landing from './Landing'
 
 export default function App() {
@@ -55,6 +59,24 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <QRPreview />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/beta-register" element={<BetaRegister />} />
+          <Route
+            path="/admin/beta-registrations"
+            element={
+              <ProtectedRoute>
+                <BetaRegistrations />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/affiliate" element={<Affiliate />} />
+          <Route
+            path="/affiliate/dashboard"
+            element={
+              <ProtectedRoute>
+                <AffiliateDashboard />
               </ProtectedRoute>
             }
           />

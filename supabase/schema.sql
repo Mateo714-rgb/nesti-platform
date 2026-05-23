@@ -109,6 +109,40 @@ VALUES (
 )
 ON CONFLICT DO NOTHING;
 
--- 10. HABILITAR REALTIME
+-- 10. REGISTROS BETA (BETA REGISTRATIONS)
+CREATE TABLE IF NOT EXISTS beta_registrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL,
+  email TEXT NOT NULL,
+  hotel TEXT NOT NULL,
+  telefono TEXT DEFAULT '',
+  hotel_size TEXT DEFAULT '',
+  mensaje TEXT DEFAULT '',
+  ref_code TEXT DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 11. AFILIADOS
+CREATE TABLE IF NOT EXISTS affiliates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  nombre TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  ref_code TEXT NOT NULL UNIQUE,
+  payout_email TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 12. REFERRALS (hoteles referidos)
+CREATE TABLE IF NOT EXISTS referrals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  affiliate_id UUID NOT NULL REFERENCES affiliates(id) ON DELETE CASCADE,
+  beta_registration_id UUID REFERENCES beta_registrations(id) ON DELETE SET NULL,
+  hotel_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'paid')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 13. HABILITAR REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE solicitudes_servicio;
 ALTER PUBLICATION supabase_realtime ADD TABLE rooms;

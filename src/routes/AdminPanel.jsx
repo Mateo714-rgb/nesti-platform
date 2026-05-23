@@ -142,7 +142,19 @@ export default function AdminPanel() {
     <div className="min-h-screen bg-gradient-to-br from-surface-1 via-white to-brand-50/40 px-4 py-6 max-w-4xl mx-auto">
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <p className="text-xs text-gray-400 tracking-widest uppercase font-medium mb-1">Panel Administrativo</p>
-        <h1 className="font-display text-2xl font-semibold text-gray-900">Dashboard del Hotel</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-2xl font-semibold text-gray-900">Dashboard del Hotel</h1>
+          <div className="flex items-center gap-2">
+            <a href="/affiliate/dashboard"
+              className="text-xs font-medium text-amber-600 hover:text-amber-700 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-xl transition-all hover:bg-amber-100">
+              Afiliados
+            </a>
+            <a href="/admin/beta-registrations"
+              className="text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 border border-brand-100 px-3 py-1.5 rounded-xl transition-all hover:bg-brand-100">
+              Registros Beta
+            </a>
+          </div>
+        </div>
       </motion.div>
 
       {/* Tab switcher */}
