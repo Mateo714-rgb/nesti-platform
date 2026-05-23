@@ -306,24 +306,26 @@ export default function Landing() {
       {/* Beta Banner */}
       <BetaBanner />
 
-      {/* Hero */}
-      <section className="relative z-10 pt-24 pb-20 px-6 overflow-hidden">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
-          <div className="flex-1 text-center lg:text-left">
+      {/* Hero — Premium */}
+      <section className="relative z-10 min-h-screen flex items-center px-6 overflow-hidden"
+        style={{ backgroundImage: 'url(/images/hero-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[5px] z-0" />
+        <div className="relative z-10 max-w-6xl mx-auto w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-16 py-24">
+          <div className="flex-1 text-center lg:text-left max-w-lg">
             <FadeIn delay={0.1}>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-50 border border-brand-100 mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse-soft" />
-                <span className="text-xs font-medium text-brand-700 tracking-wide">Guest Experience Platform</span>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
+                <span className="text-xs font-medium text-white/90 tracking-wide">Guest Experience Platform</span>
               </div>
             </FadeIn>
             <FadeIn delay={0.2}>
-              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-semibold text-gray-900 leading-tight text-balance mb-4">
-                La experiencia del huesped,{' '}
-                <span className="text-brand-600">redefinida</span>
+              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight text-balance mb-4">
+                La experiencia del huesped,<br />
+                <span style={{ color: '#0d7a70' }}>redefinida</span>
               </h1>
             </FadeIn>
             <FadeIn delay={0.3}>
-              <p className="text-base sm:text-lg text-gray-500 max-w-lg mx-auto lg:mx-0 leading-relaxed mb-8 text-balance">
+              <p className="text-base sm:text-lg text-white/70 max-w-lg mx-auto lg:mx-0 leading-relaxed mb-8 text-balance">
                 Asistente digital inteligente para hoteles. Tus huespedes acceden a todos los servicios del hotel desde su habitacion con solo escanear un codigo QR.
               </p>
             </FadeIn>
@@ -331,19 +333,19 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start">
                 {user ? (
                   <>
-                    <a href="/admin" className="px-6 py-3 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20">
+                    <a href="/admin" className="px-6 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all shadow-lg" style={{ backgroundColor: '#0d7a70' }}>
                       Ir al panel
                     </a>
-                    <a href="/reception" className="px-6 py-3 rounded-2xl text-sm font-medium bg-surface-2 text-gray-600 hover:bg-surface-3 transition-all">
+                    <a href="/reception" className="px-6 py-3 rounded-xl text-sm font-medium text-white border border-white/30 hover:bg-white/10 transition-all">
                       Recepcion
                     </a>
                   </>
                 ) : (
                   <>
-                    <a href="/beta-register" className="px-6 py-3 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 hover:-translate-y-0.5 active:translate-y-0">
+                    <a href="/beta-register" className="px-6 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all shadow-lg hover:-translate-y-0.5 active:translate-y-0" style={{ backgroundColor: '#0d7a70' }}>
                       Comenzar ahora
                     </a>
-                    <SmoothLink href="#video" className="px-6 py-3 rounded-2xl text-sm font-medium bg-surface-2 text-gray-600 hover:bg-surface-3 transition-all flex items-center gap-2">
+                    <SmoothLink href="#video" className="px-6 py-3 rounded-xl text-sm font-medium text-white border border-white/30 hover:bg-white/10 transition-all flex items-center gap-2">
                       <Icon name="play" className="w-4 h-4" />
                       Ver video
                     </SmoothLink>
@@ -352,45 +354,43 @@ export default function Landing() {
               </div>
             </FadeIn>
           </div>
-          <div className="flex-1 max-w-sm lg:max-w-none">
+          <div className="flex-1 max-w-sm lg:max-w-none flex justify-center">
             <motion.div
               animate={{ y: [-6, 6, -6] }}
               transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity }}
             >
               <div className="relative">
-                <div className="absolute inset-0 bg-brand-400/20 rounded-[40px] blur-[60px] scale-110" />
-                <div className="relative glass rounded-[32px] p-4 sm:p-5 shadow-float">
-                  <div className="bg-surface-0 rounded-3xl p-5 sm:p-6 border border-surface-3">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" fill="none" className="w-[18px] h-[18px] text-white">
-                          <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Habitacion 204</p>
-                        <p className="text-xs text-gray-400">Bienvenido, Maria</p>
-                      </div>
-                      <div className="ml-auto flex gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                        <span className="w-2 h-2 rounded-full bg-amber-300" />
-                        <span className="w-2 h-2 rounded-full bg-red-300" />
-                      </div>
+                <div className="absolute inset-0 rounded-[32px] blur-[60px] scale-110" style={{ backgroundColor: 'rgba(13, 122, 112, 0.25)' }} />
+                <div className="relative bg-white/95 backdrop-blur-xl rounded-[24px] p-5 sm:p-6 shadow-float" style={{ width: 320 }}>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#0d7a70' }}>
+                      <svg viewBox="0 0 24 24" fill="none" className="w-[18px] h-[18px] text-white">
+                        <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
+                      </svg>
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5 mb-3">
-                      {['Limpieza', 'Room Service', 'Toallas', 'Desayuno'].map((item) => (
-                        <div key={item} className="rounded-2xl bg-brand-50 border border-brand-100 px-3.5 py-2.5 text-center hover:bg-brand-100 transition-colors cursor-pointer">
-                          <p className="text-xs font-medium text-brand-700">{item}</p>
-                        </div>
-                      ))}
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Habitacion 204</p>
+                      <p className="text-xs text-gray-400">Bienvenido, Maria</p>
                     </div>
-                    <div className="rounded-2xl bg-brand-600 p-3.5 flex items-center justify-between transition-all hover:bg-brand-700 cursor-pointer">
-                      <div>
-                        <p className="text-xs text-white/70">Solicitar ahora</p>
-                        <p className="text-sm font-semibold text-white">Asistencia en habitacion</p>
+                    <div className="ml-auto flex gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span className="w-2 h-2 rounded-full bg-amber-300" />
+                      <span className="w-2 h-2 rounded-full bg-red-300" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5 mb-3">
+                    {['Limpieza', 'Room Service', 'Toallas', 'Desayuno'].map((item) => (
+                      <div key={item} className="rounded-xl px-3.5 py-2.5 text-center cursor-pointer" style={{ backgroundColor: '#f0fafa', border: '1px solid #d0f0f0' }}>
+                        <p className="text-xs font-medium" style={{ color: '#0d7a70' }}>{item}</p>
                       </div>
-                      <Icon name="bell" className="text-white/80 w-7 h-7" />
+                    ))}
+                  </div>
+                  <div className="rounded-xl p-3.5 flex items-center justify-between cursor-pointer text-white" style={{ backgroundColor: '#0d7a70' }}>
+                    <div>
+                      <p className="text-xs text-white/70">Solicitar ahora</p>
+                      <p className="text-sm font-semibold text-white">Asistencia en habitacion</p>
                     </div>
+                    <Icon name="bell" className="text-white/80 w-7 h-7" />
                   </div>
                 </div>
               </div>
