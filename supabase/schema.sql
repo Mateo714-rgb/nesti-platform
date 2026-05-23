@@ -143,6 +143,33 @@ CREATE TABLE IF NOT EXISTS referrals (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 13. HABILITAR REALTIME
+-- 13. NOVEDADES / HOY EN EL HOTEL
+CREATE TABLE IF NOT EXISTS novedades (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  titulo TEXT NOT NULL,
+  descripcion TEXT DEFAULT '',
+  categoria TEXT DEFAULT 'general' CHECK (categoria IN ('general', 'evento', 'comida', 'actividad')),
+  fecha_evento DATE DEFAULT NULL,
+  activo BOOLEAN DEFAULT true,
+  hotel_id UUID DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE novedades ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Novedades insertable por admin autenticado"
+  ON novedades FOR INSERT TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Novedades editables por admin autenticado"
+  ON novedades FOR UPDATE TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Novedades visibles para todos (lectura)"
+  ON novedades FOR SELECT TO anon, authenticated
+  USING (true);
+
+-- 14. HABILITAR REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE solicitudes_servicio;
 ALTER PUBLICATION supabase_realtime ADD TABLE rooms;

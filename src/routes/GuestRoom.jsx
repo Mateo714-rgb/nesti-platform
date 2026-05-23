@@ -32,6 +32,7 @@ export default function GuestRoom() {
   const [selectedService, setSelectedService] = useState(null)
   const [tab, setTab] = useState('services')
   const [showCustom, setShowCustom] = useState(false)
+  const [novedades, setNovedades] = useState([])
 
   useEffect(() => {
     supabase
@@ -63,6 +64,17 @@ export default function GuestRoom() {
       })
     }
   }, [hotelConfig])
+
+  useEffect(() => {
+    supabase
+      .from('novedades')
+      .select('*')
+      .eq('activo', true)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) setNovedades(data)
+      })
+  }, [])
 
   if (loading) {
     return (
@@ -176,6 +188,7 @@ export default function GuestRoom() {
             {[
               { id: 'services', label: 'Servicios' },
               { id: 'requests', label: 'Mis Solicitudes' },
+              { id: 'novedades', label: 'Hoy en el Hotel' },
               { id: 'info', label: 'Info Hotel' },
             ].map((t) => (
               <button
@@ -286,6 +299,56 @@ export default function GuestRoom() {
                         <span className="text-[10px] text-gray-400">Recibido</span>
                         <span className="text-[10px] text-gray-400">En proceso</span>
                         <span className="text-[10px] text-gray-400">Completado</span>
+                      </div>
+                    </motion.div>
+                  )
+                })
+              )}
+            </motion.div>
+          )}
+
+          {/* === HOY EN EL HOTEL === */}
+          {tab === 'novedades' && (
+            <motion.div key="novedades" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="px-4 pb-10 space-y-3">
+              {novedades.length === 0 ? (
+                <div className="text-center py-16">
+                  <p className="text-3xl mb-3">📢</p>
+                  <p className="text-sm font-medium text-gray-500">No hay novedades por ahora</p>
+                  <p className="text-xs text-gray-400 mt-1">¡Vuelve más tarde para ver eventos y actividades!</p>
+                </div>
+              ) : (
+                novedades.map((n, i) => {
+                  const iconMap = {
+                    general: '📢',
+                    evento: '🎉',
+                    comida: '🍽️',
+                    actividad: '🏃',
+                  }
+                  return (
+                    <motion.div
+                      key={n.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.04 * i, duration: 0.4 }}
+                      className="bg-white rounded-2xl px-4 py-4 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-xl mt-0.5">{iconMap[n.categoria] || '📢'}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-gray-800">{n.titulo}</p>
+                            <span className="text-[10px] text-gray-400 bg-surface-2 px-2 py-0.5 rounded-full capitalize">{n.categoria}</span>
+                          </div>
+                          {n.descripcion && (
+                            <p className="text-xs text-gray-500 mt-1 leading-relaxed">{n.descripcion}</p>
+                          )}
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-[10px] text-gray-400">
+                              {new Date(n.created_at).toLocaleDateString('es-EC', { day: '2-digit', month: 'short' })}
+                            </span>
+                            {n.fecha_evento && (
+                              <span className="text-[10px] text-brand-600 font-medium">📅 {new Date(n.fecha_evento).toLocaleDateString('es-EC', { day: 'numeric', month: 'long' })}</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </motion.div>
                   )

@@ -164,6 +164,7 @@ export default function AdminPanel() {
           { id: 'dashboard', label: 'Dashboard' },
           { id: 'config', label: 'Configuración' },
           { id: 'affiliates', label: 'Afiliados' },
+          { id: 'novedades', label: 'Novedades' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -238,6 +239,11 @@ export default function AdminPanel() {
       {/* ===== AFILIADOS ===== */}
       {tab === 'affiliates' && (
         <AffiliatesSection />
+      )}
+
+      {/* ===== NOVEDADES ===== */}
+      {tab === 'novedades' && (
+        <NovedadesSection />
       )}
 
       {/* ===== CONFIGURACIÓN ===== */}
@@ -580,6 +586,157 @@ function AffiliatesSection() {
           </tbody>
         </table>
       </div>
+    </motion.div>
+  )
+}
+
+// ===== NOVEDADES (HOY EN EL HOTEL) =====
+function NovedadesSection() {
+  const [novedades, setNovedades] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({
+    titulo: '',
+    descripcion: '',
+    categoria: 'general',
+    fecha_evento: '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const fetchNovedades = async () => {
+    const { data } = await supabase
+      .from('novedades')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (data) setNovedades(data)
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchNovedades() }, [])
+
+  const handleCreate = async () => {
+    if (!form.titulo.trim()) return
+    setSaving(true)
+    const { data } = await supabase
+      .from('novedades')
+      .insert({
+        titulo: form.titulo.trim(),
+        descripcion: form.descripcion.trim(),
+        categoria: form.categoria,
+        fecha_evento: form.fecha_evento || null,
+      })
+      .select()
+      .single()
+    if (data) {
+      setNovedades(prev => [data, ...prev])
+      setForm({ titulo: '', descripcion: '', categoria: 'general', fecha_evento: '' })
+    }
+    setSaving(false)
+  }
+
+  const toggleActive = async (id, current) => {
+    await supabase.from('novedades').update({ activo: !current }).eq('id', id)
+    setNovedades(prev => prev.map(n => n.id === id ? { ...n, activo: !current } : n))
+  }
+
+  const handleDelete = async (id) => {
+    await supabase.from('novedades').delete().eq('id', id)
+    setNovedades(prev => prev.filter(n => n.id !== id))
+  }
+
+  const iconMap = {
+    general: '📢',
+    evento: '🎉',
+    comida: '🍽️',
+    actividad: '🏃',
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-10 h-10 rounded-2xl bg-brand-100 animate-pulse mx-auto mb-3" />
+        <p className="text-sm text-gray-400">Cargando novedades...</p>
+      </div>
+    )
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pb-20 space-y-6">
+      {/* Create form */}
+      <div className="bg-white rounded-2xl p-6 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+        <p className="text-xs text-gray-400 uppercase tracking-widest font-medium mb-4">Nueva novedad</p>
+        <div className="space-y-3">
+          <input value={form.titulo} onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
+            placeholder="Título (ej: Fogata 7PM)"
+            className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all" />
+          <textarea value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))}
+            placeholder="Descripción (opcional)"
+            rows={2}
+            className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all resize-none" />
+          <div className="flex gap-3">
+            <select value={form.categoria} onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))}
+              className="flex-1 text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all">
+              <option value="general">General</option>
+              <option value="evento">Evento</option>
+              <option value="comida">Comida</option>
+              <option value="actividad">Actividad</option>
+            </select>
+            <input type="date" value={form.fecha_evento} onChange={e => setForm(p => ({ ...p, fecha_evento: e.target.value }))}
+              className="flex-1 text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all" />
+          </div>
+          <button onClick={handleCreate} disabled={saving}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm disabled:opacity-50">
+            {saving ? 'Publicando...' : 'Publicar novedad'}
+          </button>
+        </div>
+      </div>
+
+      {/* List */}
+      {novedades.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-3xl mb-3">📢</p>
+          <p className="text-sm text-gray-500">No hay novedades aún</p>
+          <p className="text-xs text-gray-400 mt-1">Publica la primera desde el formulario de arriba</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {novedades.map((n, i) => (
+            <motion.div key={n.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03, duration: 0.35 }}
+              className={`bg-white rounded-2xl border p-4 transition-all ${n.activo ? 'border-surface-3' : 'border-gray-200 opacity-60'}`}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{iconMap[n.categoria] || '📢'}</span>
+                    <p className={`text-sm font-semibold ${n.activo ? 'text-gray-900' : 'text-gray-400'}`}>{n.titulo}</p>
+                    <span className="text-[10px] text-gray-400 bg-surface-2 px-2 py-0.5 rounded-full capitalize">{n.categoria}</span>
+                  </div>
+                  {n.descripcion && (
+                    <p className="text-xs text-gray-500 ml-8 mt-1">{n.descripcion}</p>
+                  )}
+                  <div className="flex items-center gap-3 mt-2 ml-8">
+                    <span className="text-[10px] text-gray-400">
+                      {new Date(n.created_at).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {n.fecha_evento && (
+                      <span className="text-[10px] text-brand-600 font-medium">📅 {new Date(n.fecha_evento).toLocaleDateString('es-EC', { day: 'numeric', month: 'long' })}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button onClick={() => toggleActive(n.id, n.activo)}
+                    className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all ${n.activo ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-brand-50 text-brand-700 hover:bg-brand-100'}`}>
+                    {n.activo ? 'Ocultar' : 'Mostrar'}
+                  </button>
+                  <button onClick={() => handleDelete(n.id)}
+                    className="text-xs px-2.5 py-1.5 rounded-lg font-medium text-red-500 hover:bg-red-50 transition-all">
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </motion.div>
   )
 }
