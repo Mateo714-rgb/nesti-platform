@@ -505,6 +505,46 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Affiliates */}
+      <section className="relative z-10 py-16 px-6">
+        <div className="max-w-5xl mx-auto">
+          <FadeIn delay={0.1}>
+            <div className="text-center mb-10">
+              <p className="text-xs font-semibold text-brand-600 tracking-widest uppercase mb-3">Afiliados</p>
+              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 text-balance mb-3">
+                Gana mientras ayudas a hoteles
+              </h2>
+              <p className="text-gray-500 max-w-lg mx-auto text-balance">
+                Refiere hoteles a Nesti y recibe el 30% recurrente de cada pago mensual. Sin límites, sin topes.
+              </p>
+            </div>
+          </FadeIn>
+          <div className="grid sm:grid-cols-3 gap-5 mb-8">
+            {[
+              { icon: 'sparkle', value: '30%', label: 'comisión recurrente' },
+              { icon: 'star', value: '$14.70', label: 'por hotel activo / mes' },
+              { icon: 'gift', value: 'De por vida', label: 'mientras el hotel pague' },
+            ].map((s, i) => (
+              <FadeIn key={s.label} delay={0.1 + i * 0.05}>
+                <div className="glass rounded-3xl p-6 text-center hover:shadow-glass-lg transition-all duration-300 hover:-translate-y-0.5">
+                  <Icon name={s.icon} className="w-8 h-8 text-brand-400 block mx-auto mb-3" />
+                  <p className="font-display text-xl sm:text-2xl font-bold text-brand-600 mb-0.5">{s.value}</p>
+                  <p className="text-xs text-gray-500">{s.label}</p>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+          <FadeIn delay={0.3}>
+            <div className="text-center">
+              <a href="/affiliate"
+                className="inline-flex px-6 py-3 rounded-2xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5">
+                Quiero ser afiliado
+              </a>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="relative z-10 py-20 px-6">
         <div className="max-w-3xl mx-auto text-center">
