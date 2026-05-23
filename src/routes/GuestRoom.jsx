@@ -8,8 +8,8 @@ import { useSessionMonitor } from '../hooks/useSessionMonitor'
 import { useHotelConfig, getInfoItems } from '../hooks/useHotelConfig'
 import RequestModal from '../components/RequestModal'
 import ServiceCard from '../components/ServiceCard'
-import GlassCard from '../components/GlassCard'
 import { services as fallbackServices } from '../data/hotel'
+import { getRoomPrice, getServicePrice, formatPrice } from '../data/prices'
 
 const CATEGORIES = ['todos', 'habitación', 'alimentos', 'logística']
 
@@ -49,6 +49,7 @@ export default function GuestRoom() {
               title: s.titulo,
               desc: s.descripcion,
               eta: s.tiempo_estimado,
+              precio: Number(s.precio) || 0,
             }))
           )
         }
@@ -147,7 +148,10 @@ export default function GuestRoom() {
             <GlassCard className="p-4 !bg-white/80">
               <div className="flex items-center justify-between mb-1">
                 <p className="font-semibold text-brand-900">{room?.nombre}</p>
-                <span className="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full font-medium">{room?.tipo}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-brand-600">{formatPrice(getRoomPrice(room))}/noche</span>
+                  <span className="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full font-medium">{room?.tipo}</span>
+                </div>
               </div>
               <p className="text-xs text-gray-500 mb-3">{room?.descripcion}</p>
             </GlassCard>
@@ -232,6 +236,11 @@ export default function GuestRoom() {
                 {filtered.map((s, i) => (
                   <ServiceCard key={s.id} {...s} index={i} onClick={() => setSelectedService(s)} />
                 ))}
+                {filtered.length === 0 && (
+                  <div className="col-span-2 text-center py-12">
+                    <p className="text-sm text-gray-400">No hay servicios en esta categoría</p>
+                  </div>
+                )}
               </div>
 
               <div className="px-4 pb-10">

@@ -1,13 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-
-const MOCK_ROOMS = [
-  { id: '00000000-0000-0000-0000-000000000101', numero: '101', nombre: 'Habitación Estándar', tipo: 'Estándar', token_sesion_actual: null },
-  { id: '00000000-0000-0000-0000-000000000204', numero: '204', nombre: 'Suite Orquídea', tipo: 'Suite Junior', token_sesion_actual: crypto.randomUUID() },
-  { id: '00000000-0000-0000-0000-000000000305', numero: '305', nombre: 'Suite Panorámica', tipo: 'Suite', token_sesion_actual: null },
-  { id: '00000000-0000-0000-0000-000000000112', numero: '112', nombre: 'Cabaña del Bosque', tipo: 'Cabaña', token_sesion_actual: null },
-]
+import { getRoomPrice, formatPrice } from '../data/prices'
 
 function StatCard({ label, value, sub, accent }) {
   return (
@@ -36,8 +30,7 @@ export default function AdminPanel() {
   const [rooms, setRooms] = useState([])
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
-  const [actionId, setActionId] = useState(null)
-  const [tab, setTab] = useState('rooms')
+  const [tab, setTab] = useState('dashboard')
 
   useEffect(() => {
     fetchData()
@@ -49,30 +42,9 @@ export default function AdminPanel() {
       supabase.from('rooms').select('*').order('numero'),
       supabase.from('solicitudes_servicio').select('*').order('created_at', { ascending: false }),
     ])
-    if (roomsRes.error || !roomsRes.data || roomsRes.data.length === 0) {
-      setRooms(MOCK_ROOMS)
-    } else {
-      setRooms(roomsRes.data)
-    }
-    if (!reqsRes.error && reqsRes.data) {
-      setRequests(reqsRes.data)
-    }
+    if (!roomsRes.error && roomsRes.data) setRooms(roomsRes.data)
+    if (!reqsRes.error && reqsRes.data) setRequests(reqsRes.data)
     setLoading(false)
-  }
-
-  async function handleCheckIn(roomId) {
-    setActionId(roomId)
-    const token = crypto.randomUUID()
-    await supabase.from('rooms').update({ token_sesion_actual: token }).eq('id', roomId)
-    setRooms(prev => prev.map(r => r.id === roomId ? { ...r, token_sesion_actual: token } : r))
-    setActionId(null)
-  }
-
-  async function handleCheckOut(roomId) {
-    setActionId(roomId)
-    await supabase.from('rooms').update({ token_sesion_actual: null }).eq('id', roomId)
-    setRooms(prev => prev.map(r => r.id === roomId ? { ...r, token_sesion_actual: null } : r))
-    setActionId(null)
   }
 
   // Dashboard computations
@@ -80,7 +52,16 @@ export default function AdminPanel() {
     const totalRooms = rooms.length
     const activeRooms = rooms.filter(r => r.token_sesion_actual).length
     const occupancy = totalRooms > 0 ? Math.round((activeRooms / totalRooms) * 100) : 0
-    return { totalRooms, activeRooms, occupancy }
+    const roomRevenue = rooms
+      .filter(r => r.token_sesion_actual && r.check_in)
+      .reduce((sum, r) => {
+        const price = getRoomPrice(r)
+        const nights = r.check_in && r.check_out
+          ? Math.max(1, Math.round((new Date(r.check_out) - new Date(r.check_in)) / (1000 * 60 * 60 * 24)))
+          : 1
+        return sum + (price * nights)
+      }, 0)
+    return { totalRooms, activeRooms, occupancy, roomRevenue }
   }, [rooms])
 
   const reqStats = useMemo(() => {
@@ -177,7 +158,7 @@ export default function AdminPanel() {
 
       {/* ===== HABITACIONES ===== */}
       {tab === 'rooms' && (
-        <div className="space-y-3 pb-20">
+        <div className="pb-20">
           {loading ? (
             <div className="text-center py-16">
               <div className="w-10 h-10 rounded-2xl bg-brand-100 animate-pulse mx-auto mb-3" />
@@ -190,47 +171,56 @@ export default function AdminPanel() {
                 <StatCard label="Ocupadas" value={stats.activeRooms} sub={`${stats.occupancy}% ocupación`} accent={stats.activeRooms > 0 ? 'bg-brand-50 border-brand-200' : ''} />
                 <StatCard label="Disponibles" value={stats.totalRooms - stats.activeRooms} sub="libres" />
               </div>
-              {rooms.map((room, i) => {
-                const active = !!room.token_sesion_actual
-                return (
-                  <motion.div key={room.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04, duration: 0.35 }}
-                    className={`rounded-2xl border p-5 transition-all duration-200 ${active ? 'bg-white border-brand-200 shadow-glass' : 'bg-white border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]'}`}>
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 min-w-0">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${active ? 'bg-brand-50 text-brand-700 border border-brand-200' : 'bg-surface-2 text-gray-500 border border-surface-3'}`}>
-                          {room.numero}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4">
+                <p className="text-xs text-amber-800 font-medium">
+                  ⚙️ Check-in / Check-out operativos desde el <a href="/reception" className="underline font-semibold">Panel de Recepción</a>
+                </p>
+              </div>
+              <div className="space-y-3">
+                {rooms.map((room, i) => {
+                  const active = !!room.token_sesion_actual
+                  const price = getRoomPrice(room)
+                  return (
+                    <motion.div key={room.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04, duration: 0.35 }}
+                      className={`rounded-2xl border p-5 transition-all duration-200 ${active ? 'bg-white border-brand-200 shadow-glass' : 'bg-white border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]'}`}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${active ? 'bg-brand-50 text-brand-700 border border-brand-200' : 'bg-surface-2 text-gray-500 border border-surface-3'}`}>
+                            {room.numero}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-gray-900">{room.nombre}</p>
+                              <span className="text-xs text-gray-400 bg-surface-2 px-2 py-0.5 rounded-full">{room.tipo}</span>
+                              <span className="text-xs font-semibold text-brand-600">{formatPrice(price)}/noche</span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-400' : 'bg-gray-300'}`} />
+                              <span className={`text-xs ${active ? 'text-emerald-700 font-medium' : 'text-gray-400'}`}>
+                                {active ? 'Ocupada' : 'Disponible'}
+                              </span>
+                              {active && room.huesped_nombre && (
+                                <>
+                                  <span className="text-gray-300">·</span>
+                                  <span className="text-xs text-gray-500">{room.huesped_nombre}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-semibold text-gray-900">{room.nombre}</p>
-                            <span className="text-xs text-gray-400 bg-surface-2 px-2 py-0.5 rounded-full">{room.tipo}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-400' : 'bg-gray-300'}`} />
-                            <span className={`text-xs ${active ? 'text-emerald-700 font-medium' : 'text-gray-400'}`}>
-                              {active ? 'Check-in activo' : 'Disponible'}
-                            </span>
-                          </div>
+                        <div className="text-right shrink-0">
+                          {active && room.check_out && (
+                            <p className="text-xs text-gray-400">
+                              Check-out: {new Date(room.check_out).toLocaleDateString()}
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <div className="flex gap-2 shrink-0">
-                        {active ? (
-                          <button onClick={() => handleCheckOut(room.id)} disabled={actionId === room.id}
-                            className="px-4 py-2 rounded-xl text-sm font-semibold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 active:scale-95 transition-all disabled:opacity-50">
-                            {actionId === room.id ? '...' : 'Hacer Check-Out'}
-                          </button>
-                        ) : (
-                          <button onClick={() => handleCheckIn(room.id)} disabled={actionId === room.id}
-                            className="px-4 py-2 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm disabled:opacity-50">
-                            {actionId === room.id ? '...' : 'Hacer Check-In'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                )
-              })}
+                    </motion.div>
+                  )
+                })}
+              </div>
             </>
           )}
         </div>
@@ -254,11 +244,11 @@ export default function AdminPanel() {
       {/* ===== DASHBOARD ===== */}
       {tab === 'dashboard' && (
         <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pb-20 space-y-6">
-          {/* KPI row */}
+          {/* KPI row — revenue + occupancy */}
           <div className="flex gap-3">
-            <StatCard label="Solicitudes totales" value={reqStats.total} sub="histórico" />
-            <StatCard label="Completadas" value={reqStats.completed} sub="finalizadas" />
-            <StatCard label="En proceso" value={reqStats.inProgress} sub="siendo atendidas" />
+            <StatCard label="Ocupación" value={`${stats.occupancy}%`} sub={`${stats.activeRooms}/${stats.totalRooms} hab.`} accent={stats.occupancy > 50 ? 'bg-brand-50 border-brand-200' : ''} />
+            <StatCard label="Ingreso estimado" value={formatPrice(stats.roomRevenue)} sub="habitaciones ocupadas" accent="bg-emerald-50 border-emerald-200" />
+            <StatCard label="Solicitudes" value={reqStats.total} sub="histórico" />
             <StatCard label="Pendientes" value={reqStats.pending} sub="sin asignar" accent={reqStats.pending > 0 ? 'bg-amber-50 border-amber-200' : ''} />
           </div>
 

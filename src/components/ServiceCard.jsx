@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion'
+import { formatPrice } from '../data/prices'
 
 export default function ServiceCard({
   icon,
   title,
   desc,
   eta,
+  precio = 0,
   disabled = false,
   onClick,
   index = 0,
@@ -35,13 +37,20 @@ export default function ServiceCard({
         {title}
       </p>
       <p className="text-xs text-gray-400 leading-snug line-clamp-2">{desc}</p>
+      <div className="flex items-center justify-between mt-2">
+        {!disabled && (
+          <span className="text-xs text-brand-500 font-medium">≈ {eta}</span>
+        )}
+        {precio > 0 ? (
+          <span className="text-xs font-semibold text-gray-700">{formatPrice(precio)}</span>
+        ) : (
+          <span className="text-xs text-emerald-600 font-medium">Gratis</span>
+        )}
+      </div>
       {disabled && (
         <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-brand-500 flex items-center justify-center">
           <span className="text-white text-xs">✓</span>
         </div>
-      )}
-      {!disabled && (
-        <p className="text-xs text-brand-500 mt-2 font-medium">≈ {eta}</p>
       )}
     </motion.button>
   )

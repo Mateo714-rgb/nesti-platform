@@ -9,7 +9,14 @@ CREATE TABLE IF NOT EXISTS rooms (
   nombre VARCHAR(100) NOT NULL,
   tipo VARCHAR(50) DEFAULT 'estándar',
   descripcion TEXT,
+  precio_noche DECIMAL(10,2) DEFAULT 0,
+  estado_limpieza VARCHAR(20) DEFAULT 'limpia' CHECK (estado_limpieza IN ('limpia', 'sucia', 'mantenimiento')),
   token_sesion_actual UUID DEFAULT NULL,
+  huesped_nombre TEXT DEFAULT NULL,
+  huesped_identificacion TEXT DEFAULT NULL,
+  huesped_telefono TEXT DEFAULT NULL,
+  check_in TIMESTAMPTZ DEFAULT NULL,
+  check_out TIMESTAMPTZ DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -21,6 +28,7 @@ CREATE TABLE IF NOT EXISTS servicios (
   titulo TEXT NOT NULL,
   descripcion TEXT DEFAULT '',
   tiempo_estimado TEXT DEFAULT '',
+  precio DECIMAL(8,2) DEFAULT 0,
   orden INTEGER DEFAULT 0
 );
 
@@ -69,16 +77,16 @@ CREATE INDEX IF NOT EXISTS idx_solicitudes_creado ON solicitudes_servicio(create
 CREATE INDEX IF NOT EXISTS idx_solicitudes_room ON solicitudes_servicio(room_id);
 CREATE INDEX IF NOT EXISTS idx_rooms_token ON rooms(token_sesion_actual);
 
--- 7. SEED — SERVICIOS
-INSERT INTO servicios (categoria, icono, titulo, descripcion, tiempo_estimado, orden) VALUES
-  ('habitación', '🛏️', 'Limpieza de habitación', 'Solicita limpieza o cambio de ropa de cama', '20 min', 1),
-  ('habitación', '🪣', 'Toallas extra', 'Toallas de baño o de piscina', '10 min', 2),
-  ('habitación', '🧊', 'Reabastecer minibar', 'Agua, jugos, snacks disponibles', '15 min', 3),
-  ('alimentos', '🍽️', 'Room service', 'Menú disponible de 7am a 10pm', '35 min', 4),
-  ('alimentos', '☕', 'Desayuno en habitación', 'Disfruta el desayuno sin salir del cuarto', '25 min', 5),
-  ('logística', '🚗', 'Transporte', 'Taxi al aeropuerto, city tour, excursiones', '30 min', 6),
-  ('logística', '👕', 'Lavandería', 'Entrega en bolsa antes de las 9am, lista a las 6pm', '9h', 7),
-  ('logística', '📍', 'Información local', 'Restaurantes, actividades, mapas de Mindo', '5 min', 8)
+-- 7. SEED — SERVICIOS (con precios en USD)
+INSERT INTO servicios (categoria, icono, titulo, descripcion, tiempo_estimado, precio, orden) VALUES
+  ('habitación', '🛏️', 'Limpieza de habitación', 'Solicita limpieza o cambio de ropa de cama', '20 min', 0, 1),
+  ('habitación', '🪣', 'Toallas extra', 'Toallas de baño o de piscina', '10 min', 0, 2),
+  ('habitación', '🧊', 'Reabastecer minibar', 'Agua, jugos, snacks disponibles', '15 min', 5.00, 3),
+  ('alimentos', '🍽️', 'Room service', 'Menú disponible de 7am a 10pm', '35 min', 12.00, 4),
+  ('alimentos', '☕', 'Desayuno en habitación', 'Disfruta el desayuno sin salir del cuarto', '25 min', 8.00, 5),
+  ('logística', '🚗', 'Transporte', 'Taxi al aeropuerto, city tour, excursiones', '30 min', 25.00, 6),
+  ('logística', '👕', 'Lavandería', 'Entrega en bolsa antes de las 9am, lista a las 6pm', '9h', 15.00, 7),
+  ('logística', '📍', 'Información local', 'Restaurantes, actividades, mapas de Mindo', '5 min', 0, 8)
 ON CONFLICT DO NOTHING;
 
 -- 8. SEED — STAFF
@@ -170,6 +178,17 @@ CREATE POLICY "Novedades visibles para todos (lectura)"
   ON novedades FOR SELECT TO anon, authenticated
   USING (true);
 
--- 14. HABILITAR REALTIME
+-- 14. SEED — HABITACIONES (ejemplo con precios)
+INSERT INTO rooms (numero, nombre, tipo, descripcion, precio_noche) VALUES
+  ('101', 'Habitación Estándar', 'Estándar', 'Habitación con cama queen, baño privado y vistas al jardín', 80.00),
+  ('102', 'Habitación Estándar', 'Estándar', 'Habitación con cama queen, baño privado y vistas al jardín', 80.00),
+  ('103', 'Habitación Estándar', 'Estándar', 'Habitación con cama queen, baño privado y vistas al jardín', 80.00),
+  ('201', 'Suite Orquídea', 'Suite Junior', 'Suite con cama king, balcón privado y bañera de inmersión', 120.00),
+  ('202', 'Suite Orquídea', 'Suite Junior', 'Suite con cama king, balcón privado y bañera de inmersión', 120.00),
+  ('301', 'Suite Panorámica', 'Suite', 'Suite de lujo con vistas a las montañas, sala de estar y terraza', 180.00),
+  ('112', 'Cabaña del Bosque', 'Cabaña', 'Cabaña privada rodeada de naturaleza con fogatero exterior', 90.00)
+ON CONFLICT DO NOTHING;
+
+-- 15. HABILITAR REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE solicitudes_servicio;
 ALTER PUBLICATION supabase_realtime ADD TABLE rooms;
