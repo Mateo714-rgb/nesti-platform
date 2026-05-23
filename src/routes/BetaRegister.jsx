@@ -28,7 +28,7 @@ export default function BetaRegister() {
     setError('')
     setSending(true)
 
-    const { data: regData, error: err } = await supabase.from('beta_registrations').insert({
+    const { error: err } = await supabase.from('beta_registrations').insert({
       nombre: form.nombre.trim(),
       email: form.email.trim(),
       hotel: form.hotel.trim(),
@@ -36,7 +36,7 @@ export default function BetaRegister() {
       hotel_size: form.hotel_size.trim(),
       mensaje: form.mensaje.trim(),
       ref_code: refCode,
-    }).select().single()
+    })
 
     if (err) {
       setError('Error al enviar. Intenta de nuevo.')
@@ -44,8 +44,8 @@ export default function BetaRegister() {
       return
     }
 
-    // Track referral if refCode exists
-    if (refCode && regData) {
+    // Track referral if refCode exists (fire & forget)
+    if (refCode) {
       const { data: affData } = await supabase
         .from('affiliates')
         .select('id')
@@ -53,9 +53,8 @@ export default function BetaRegister() {
         .maybeSingle()
 
       if (affData) {
-        await supabase.from('referrals').insert({
+        supabase.from('referrals').insert({
           affiliate_id: affData.id,
-          beta_registration_id: regData.id,
           hotel_name: form.hotel.trim(),
           status: 'pending',
         })
