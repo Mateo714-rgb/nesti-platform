@@ -1,8 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 
-export default function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth()
+export default function ProtectedRoute({ children, rolRequerido }) {
+  const { user, perfil, loading } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -18,6 +18,14 @@ export default function ProtectedRoute({ children }) {
 
   if (!user) {
     return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />
+  }
+
+  if (rolRequerido && perfil?.rol !== rolRequerido) {
+    // Redirect to the correct panel based on their role
+    if (perfil?.rol === 'owner') return <Navigate to="/admin" replace />
+    if (perfil?.rol === 'recepcion') return <Navigate to="/reception" replace />
+    // No perfil yet — redirect to reception
+    return <Navigate to="/reception" replace />
   }
 
   return children

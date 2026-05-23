@@ -189,6 +189,39 @@ INSERT INTO rooms (numero, nombre, tipo, descripcion, precio_noche) VALUES
   ('112', 'Cabaña del Bosque', 'Cabaña', 'Cabaña privada rodeada de naturaleza con fogatero exterior', 90.00)
 ON CONFLICT DO NOTHING;
 
--- 15. HABILITAR REALTIME
+-- 15. PERFILES DE USUARIO (ROLES)
+CREATE TABLE IF NOT EXISTS perfiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  email TEXT NOT NULL,
+  rol TEXT NOT NULL DEFAULT 'recepcion' CHECK (rol IN ('owner', 'recepcion')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE perfiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Perfiles visibles para owners"
+  ON perfiles FOR SELECT TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+    OR user_id = auth.uid()
+  );
+
+CREATE POLICY "Perfiles editables por owners"
+  ON perfiles FOR INSERT TO authenticated
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+  );
+
+CREATE POLICY "Perfiles actualizables por owners"
+  ON perfiles FOR UPDATE TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+  );
+
+-- 16. HABILITAR REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE solicitudes_servicio;
 ALTER PUBLICATION supabase_realtime ADD TABLE rooms;

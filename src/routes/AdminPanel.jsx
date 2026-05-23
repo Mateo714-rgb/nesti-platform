@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/AuthContext'
 import { getRoomPrice, formatPrice } from '../data/prices'
 
 function StatCard({ label, value, sub, accent }) {
@@ -146,6 +147,7 @@ export default function AdminPanel() {
           { id: 'config', label: 'Configuración' },
           { id: 'affiliates', label: 'Afiliados' },
           { id: 'novedades', label: 'Novedades' },
+          { id: 'usuarios', label: 'Usuarios' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -226,6 +228,11 @@ export default function AdminPanel() {
         </div>
       )}
 
+      {/* ===== USUARIOS (ROLES) ===== */}
+      {tab === 'usuarios' && (
+        <UsuariosSection />
+      )}
+
       {/* ===== AFILIADOS ===== */}
       {tab === 'affiliates' && (
         <AffiliatesSection />
@@ -244,7 +251,6 @@ export default function AdminPanel() {
       {/* ===== DASHBOARD ===== */}
       {tab === 'dashboard' && (
         <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pb-20 space-y-6">
-          {/* KPI row — revenue + occupancy */}
           <div className="flex gap-3">
             <StatCard label="Ocupación" value={`${stats.occupancy}%`} sub={`${stats.activeRooms}/${stats.totalRooms} hab.`} accent={stats.occupancy > 50 ? 'bg-brand-50 border-brand-200' : ''} />
             <StatCard label="Ingreso estimado" value={formatPrice(stats.roomRevenue)} sub="habitaciones ocupadas" accent="bg-emerald-50 border-emerald-200" />
@@ -252,7 +258,6 @@ export default function AdminPanel() {
             <StatCard label="Pendientes" value={reqStats.pending} sub="sin asignar" accent={reqStats.pending > 0 ? 'bg-amber-50 border-amber-200' : ''} />
           </div>
 
-          {/* Requests per day (last 7) */}
           <div className="bg-white rounded-2xl p-5 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
             <p className="text-xs text-gray-400 uppercase tracking-widest font-medium mb-3">Solicitudes últimos 7 días</p>
             <div className="flex items-end gap-2 h-32">
@@ -271,7 +276,6 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* Top services + Peak hour */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white rounded-2xl p-5 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
               <p className="text-xs text-gray-400 uppercase tracking-widest font-medium mb-3">Servicios más solicitados</p>
@@ -310,7 +314,6 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* Occupancy */}
           <div className="bg-white rounded-2xl p-5 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
             <p className="text-xs text-gray-400 uppercase tracking-widest font-medium mb-3">Ocupación del hotel</p>
             <div className="flex items-center gap-4">
@@ -338,6 +341,151 @@ export default function AdminPanel() {
       )}
 
     </div>
+  )
+}
+
+function UsuariosSection() {
+  const { user: currentUser, refreshPerfil } = useAuth()
+  const [usuarios, setUsuarios] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState({ email: '', password: '', rol: 'recepcion' })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const fetchUsuarios = async () => {
+    const { data } = await supabase.from('perfiles').select('*').order('created_at', { ascending: false })
+    if (data) setUsuarios(data)
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchUsuarios() }, [])
+
+  const handleCreate = async () => {
+    setError('')
+    setSuccess('')
+    if (!form.email.trim() || !form.password.trim()) return
+    setSaving(true)
+
+    // Create auth user
+    const { data: authData, error: authErr } = await supabase.auth.signUp({
+      email: form.email.trim(),
+      password: form.password,
+    })
+
+    if (authErr || !authData?.user) {
+      setError(authErr?.message || 'Error al crear usuario')
+      setSaving(false)
+      return
+    }
+
+    // Create perfil
+    const { error: perfilErr } = await supabase.from('perfiles').insert({
+      user_id: authData.user.id,
+      email: form.email.trim(),
+      rol: form.rol,
+    })
+
+    if (perfilErr) {
+      setError(perfilErr.message)
+    } else {
+      setSuccess(`Usuario ${form.email} creado como ${form.rol === 'owner' ? 'Dueño' : 'Recepción'}`)
+      setForm({ email: '', password: '', rol: 'recepcion' })
+      fetchUsuarios()
+    }
+    setSaving(false)
+  }
+
+  const handleChangeRole = async (userId, newRol) => {
+    await supabase.from('perfiles').update({ rol: newRol }).eq('user_id', userId)
+    setUsuarios(prev => prev.map(u => u.user_id === userId ? { ...u, rol: newRol } : u))
+    if (userId === currentUser?.id) refreshPerfil()
+  }
+
+  const rolColors = {
+    owner: 'bg-amber-50 text-amber-700 border-amber-200',
+    recepcion: 'bg-brand-50 text-brand-700 border-brand-200',
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-10 h-10 rounded-2xl bg-brand-100 animate-pulse mx-auto mb-3" />
+        <p className="text-sm text-gray-400">Cargando usuarios...</p>
+      </div>
+    )
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pb-20 space-y-6">
+      {/* Create user form */}
+      <div className="bg-white rounded-2xl p-6 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+        <p className="text-xs text-gray-400 uppercase tracking-widest font-medium mb-4">Crear nuevo usuario</p>
+        <div className="space-y-3">
+          <input value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+            placeholder="correo@hotel.com"
+            type="email"
+            className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all" />
+          <div className="flex gap-3">
+            <input value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+              placeholder="Contraseña temporal"
+              type="password"
+              className="flex-1 text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all" />
+            <select value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value }))}
+              className="text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all">
+              <option value="recepcion">Recepción</option>
+              <option value="owner">Dueño</option>
+            </select>
+          </div>
+          {error && <p className="text-xs text-red-500 bg-red-50 rounded-xl px-4 py-2 border border-red-100">{error}</p>}
+          {success && <p className="text-xs text-emerald-600 bg-emerald-50 rounded-xl px-4 py-2 border border-emerald-100">{success}</p>}
+          <button onClick={handleCreate} disabled={saving}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm disabled:opacity-50">
+            {saving ? 'Creando...' : 'Crear usuario'}
+          </button>
+        </div>
+      </div>
+
+      {/* Users list */}
+      {usuarios.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-3xl mb-3">👤</p>
+          <p className="text-sm text-gray-500">No hay usuarios registrados</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {usuarios.map((u, i) => (
+            <motion.div key={u.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03, duration: 0.35 }}
+              className="bg-white rounded-2xl border border-surface-3 px-5 py-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold ${rolColors[u.rol]}`}>
+                  {u.email.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{u.email}</p>
+                  <p className="text-xs text-gray-400">
+                    Creado {new Date(u.created_at).toLocaleDateString('es-EC', { day: '2-digit', month: 'short' })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full border capitalize ${rolColors[u.rol]}`}>
+                  {u.rol === 'owner' ? 'Dueño' : 'Recepción'}
+                </span>
+                {u.user_id !== currentUser?.id && (
+                  <select value={u.rol} onChange={e => handleChangeRole(u.user_id, e.target.value)}
+                    className="text-xs bg-surface-1 rounded-lg px-2 py-1 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all">
+                    <option value="recepcion">Recepción</option>
+                    <option value="owner">Dueño</option>
+                  </select>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </motion.div>
   )
 }
 

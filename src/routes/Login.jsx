@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../lib/AuthContext'
@@ -8,10 +8,26 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, perfil, user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const redirect = searchParams.get('redirect') || '/reception'
+  const redirect = searchParams.get('redirect') || ''
+
+  // Once perfil loads, redirect to the correct panel
+  useEffect(() => {
+    if (!user || !perfil) return
+
+    if (redirect) {
+      navigate(redirect, { replace: true })
+      return
+    }
+
+    if (perfil.rol === 'owner') {
+      navigate('/admin', { replace: true })
+    } else {
+      navigate('/reception', { replace: true })
+    }
+  }, [user, perfil, navigate, redirect])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -21,15 +37,16 @@ export default function Login() {
     const { error: err } = await signIn(email, password)
 
     if (err) {
-      setError(err.message === 'Invalid login credentials'
-        ? 'Correo o contraseña incorrectos'
-        : err.message
+      setError(
+        err.message === 'Invalid login credentials'
+          ? 'Correo o contraseña incorrectos'
+          : err.message
       )
       setSubmitting(false)
       return
     }
 
-    navigate(redirect, { replace: true })
+    // Let the useEffect handle redirect
   }
 
   return (
@@ -41,7 +58,6 @@ export default function Login() {
         className="w-full max-w-sm"
       >
         <div className="glass rounded-3xl p-8 shadow-float">
-          {/* Brand */}
           <div className="flex items-center justify-center gap-2 mb-6">
             <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center">
               <span className="text-white text-sm font-bold">N</span>
@@ -55,7 +71,7 @@ export default function Login() {
             Acceso al panel
           </h2>
           <p className="text-sm text-gray-400 text-center mb-6">
-            Ingresa con tus credenciales de recepción
+            Ingresa con tus credenciales
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -67,7 +83,7 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="recepcion@hotel.com"
+                placeholder="correo@hotel.com"
                 required
                 className="w-full text-sm bg-surface-1 rounded-xl px-4 py-3 border border-surface-3 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all placeholder:text-gray-300"
               />
