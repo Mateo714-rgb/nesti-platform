@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useAuth } from './lib/AuthContext'
 
@@ -114,23 +114,25 @@ const svgs = {
   )
 }
 
+const PARTICLE_STYLES = Array.from({ length: 20 }, () => ({
+  width: Math.random() * 6 + 2 + 'px',
+  height: Math.random() * 6 + 2 + 'px',
+  left: Math.random() * 100 + '%',
+  top: Math.random() * 100 + '%',
+  background: `rgba(20, 116, 116, ${Math.random() * 0.15 + 0.03})`,
+  animation: `floatParticle ${Math.random() * 20 + 15}s ease-in-out infinite`,
+  animationDelay: Math.random() * 10 + 's',
+  opacity: Math.random() * 0.5 + 0.1,
+}))
+
 function Particles() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {Array.from({ length: 20 }).map((_, i) => (
+      {PARTICLE_STYLES.map((style, i) => (
         <div
           key={i}
           className="absolute rounded-full"
-          style={{
-            width: Math.random() * 6 + 2 + 'px',
-            height: Math.random() * 6 + 2 + 'px',
-            left: Math.random() * 100 + '%',
-            top: Math.random() * 100 + '%',
-            background: `rgba(20, 116, 116, ${Math.random() * 0.15 + 0.03})`,
-            animation: `floatParticle ${Math.random() * 20 + 15}s ease-in-out infinite`,
-            animationDelay: Math.random() * 10 + 's',
-            opacity: Math.random() * 0.5 + 0.1
-          }}
+          style={style}
         />
       ))}
       <style>{`

@@ -42,7 +42,11 @@ export function useGuestRequests(roomId) {
               .select(REQUEST_SELECT)
               .eq('id', payload.new.id)
               .single()
-              .then(({ data }) => {
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error('Error fetching new guest request:', error.message)
+                  return
+                }
                 if (data) {
                   setRequests((prev) => [data, ...prev])
                 }
@@ -53,7 +57,11 @@ export function useGuestRequests(roomId) {
               .select(REQUEST_SELECT)
               .eq('id', payload.new.id)
               .single()
-              .then(({ data }) => {
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error('Error fetching updated guest request:', error.message)
+                  return
+                }
                 if (data) {
                   setRequests((prev) =>
                     prev.map((r) => (r.id === data.id ? data : r))

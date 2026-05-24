@@ -101,3 +101,127 @@ CREATE POLICY "Perfiles actualizables por owners"
   WITH CHECK (
     EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
   );
+
+-- ============================================================
+-- RLS para tablas restantes
+-- ============================================================
+
+-- ROOMS: anon puede leer habitaciones con sesión activa (para guest portal)
+ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Rooms visibles para huéspedes con sesión activa"
+  ON rooms FOR SELECT TO anon
+  USING (token_sesion_actual IS NOT NULL);
+
+CREATE POLICY "Rooms visibles para staff autenticado"
+  ON rooms FOR SELECT TO authenticated
+  USING (true);
+
+CREATE POLICY "Rooms editables por staff autenticado"
+  ON rooms FOR UPDATE TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- SOLICITUDES_SERVICIO
+ALTER TABLE solicitudes_servicio ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Solicitudes visibles para el huésped de la habitación"
+  ON solicitudes_servicio FOR SELECT TO anon
+  USING (
+    room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL)
+  );
+
+CREATE POLICY "Solicitudes insertables por el huésped"
+  ON solicitudes_servicio FOR INSERT TO anon
+  WITH CHECK (
+    room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL)
+  );
+
+CREATE POLICY "Solicitudes visibles para staff autenticado"
+  ON solicitudes_servicio FOR SELECT TO authenticated
+  USING (true);
+
+CREATE POLICY "Solicitudes editables por staff autenticado"
+  ON solicitudes_servicio FOR UPDATE TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- SERVICIOS: lectura pública
+ALTER TABLE servicios ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Servicios visibles para todos"
+  ON servicios FOR SELECT TO anon, authenticated
+  USING (true);
+
+-- STAFF: lectura para autenticado
+ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Staff visible para autenticado"
+  ON staff FOR SELECT TO authenticated
+  USING (true);
+
+CREATE POLICY "Staff editable por owner"
+  ON staff FOR INSERT TO authenticated
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+  );
+
+CREATE POLICY "Staff actualizable por owner"
+  ON staff FOR UPDATE TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+  );
+
+-- HOTEL_CONFIG: lectura pública, escritura para owner
+ALTER TABLE hotel_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Config visible para todos"
+  ON hotel_config FOR SELECT TO anon, authenticated
+  USING (true);
+
+CREATE POLICY "Config editable por owner"
+  ON hotel_config FOR UPDATE TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+  );
+
+-- BETA_REGISTRATIONS: insert público, solo owner puede leer
+ALTER TABLE beta_registrations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Beta registrations insertables por cualquiera"
+  ON beta_registrations FOR INSERT TO anon, authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Beta registrations visibles solo para owner"
+  ON beta_registrations FOR SELECT TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+  );
+
+-- AFFILIATES: el afiliado puede ver su propio registro, owner puede ver todos
+ALTER TABLE affiliates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Affiliates insertables por cualquiera"
+  ON affiliates FOR INSERT TO anon, authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Affiliates visibles para el propio usuario o owner"
+  ON affiliates FOR SELECT TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+  );
+
+-- REFERRALS: owner puede ver, insert por cualquiera con ref_code
+ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Referrals insertables por cualquiera"
+  ON referrals FOR INSERT TO anon, authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Referrals visibles para owner o afiliado relacionado"
+  ON referrals FOR SELECT TO authenticated
+  USING (
+    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+    OR affiliate_id IN (SELECT id FROM affiliates WHERE user_id = auth.uid())
+  );

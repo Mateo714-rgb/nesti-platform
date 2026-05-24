@@ -35,7 +35,11 @@ export function useRealtimeRequests() {
               .select(REQUEST_SELECT)
               .eq('id', payload.new.id)
               .single()
-              .then(({ data }) => {
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error('Error fetching new request:', error.message)
+                  return
+                }
                 if (data) {
                   setRequests((prev) => [data, ...prev])
                 }
@@ -46,7 +50,11 @@ export function useRealtimeRequests() {
               .select(REQUEST_SELECT)
               .eq('id', payload.new.id)
               .single()
-              .then(({ data }) => {
+              .then(({ data, error }) => {
+                if (error) {
+                  console.error('Error fetching updated request:', error.message)
+                  return
+                }
                 if (data) {
                   setRequests((prev) =>
                     prev.map((r) => (r.id === data.id ? data : r))

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { getRoomPrice, formatPrice } from '../data/prices'
@@ -33,11 +33,7 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('dashboard')
 
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  async function fetchData() {
+  const fetchData = async () => {
     setLoading(true)
     const [roomsRes, reqsRes] = await Promise.all([
       supabase.from('rooms').select('*').order('numero'),
@@ -47,6 +43,10 @@ export default function AdminPanel() {
     if (!reqsRes.error && reqsRes.data) setRequests(reqsRes.data)
     setLoading(false)
   }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   // Dashboard computations
   const stats = useMemo(() => {
@@ -70,15 +70,6 @@ export default function AdminPanel() {
     const completed = requests.filter(r => r.estado === 'completado').length
     const pending = requests.filter(r => r.estado === 'pendiente').length
     const inProgress = requests.filter(r => r.estado === 'aceptado').length
-
-    // Average response time (pendiente → aceptado in minutes)
-    let totalMinutes = 0; let count = 0
-    requests.forEach(r => {
-      if (r.estado === 'aceptado' || r.estado === 'completado') {
-        const created = new Date(r.created_at).getTime()
-        count++
-      }
-    })
 
     // Service distribution
     const serviceCounts = {}
@@ -354,7 +345,8 @@ function UsuariosSection() {
   const [success, setSuccess] = useState('')
 
   const fetchUsuarios = async () => {
-    const { data } = await supabase.from('perfiles').select('*').order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('perfiles').select('*').order('created_at', { ascending: false })
+    if (error) console.error('Error al cargar usuarios:', error.message)
     if (data) setUsuarios(data)
     setLoading(false)
   }
@@ -397,7 +389,11 @@ function UsuariosSection() {
   }
 
   const handleChangeRole = async (userId, newRol) => {
-    await supabase.from('perfiles').update({ rol: newRol }).eq('user_id', userId)
+    const { error } = await supabase.from('perfiles').update({ rol: newRol }).eq('user_id', userId)
+    if (error) {
+      console.error('Error al cambiar rol:', error.message)
+      return
+    }
     setUsuarios(prev => prev.map(u => u.user_id === userId ? { ...u, rol: newRol } : u))
     if (userId === currentUser?.id) refreshPerfil()
   }
@@ -503,8 +499,13 @@ function ConfigSection() {
       supabase.from('hotel_config').select('*').limit(1).single(),
       supabase.from('staff').select('*').order('nombre'),
     ]).then(([configRes, staffRes]) => {
+      if (configRes.error) console.error('Error al cargar config:', configRes.error.message)
+      if (staffRes.error) console.error('Error al cargar staff:', staffRes.error.message)
       if (configRes.data) setConfig(configRes.data)
       if (staffRes.data) setStaff(staffRes.data)
+      setLoading(false)
+    }).catch(err => {
+      console.error('Error al cargar configuración:', err)
       setLoading(false)
     })
   }, [])
@@ -512,28 +513,40 @@ function ConfigSection() {
   const handleSave = async () => {
     if (!config) return
     setSaving(true)
-    await supabase
+    const { error } = await supabase
       .from('hotel_config')
       .update({ ...config, updated_at: new Date().toISOString() })
       .eq('id', config.id)
     setSaving(false)
+    if (error) {
+      console.error('Error al guardar configuración:', error.message)
+      return
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
   const addStaff = async () => {
     if (!newStaff.nombre.trim()) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('staff')
       .insert({ nombre: newStaff.nombre.trim(), rol: newStaff.rol })
       .select()
       .single()
+    if (error) {
+      console.error('Error al agregar personal:', error.message)
+      return
+    }
     if (data) setStaff((prev) => [...prev, data])
     setNewStaff({ nombre: '', rol: 'mucama' })
   }
 
   const toggleStaff = async (id, active) => {
-    await supabase.from('staff').update({ activo: !active }).eq('id', id)
+    const { error } = await supabase.from('staff').update({ activo: !active }).eq('id', id)
+    if (error) {
+      console.error('Error al cambiar estado del personal:', error.message)
+      return
+    }
     setStaff((prev) => prev.map((s) => (s.id === id ? { ...s, activo: !active } : s)))
   }
 
@@ -656,12 +669,15 @@ function ConfigSection() {
 function AffiliatesSection() {
   const [affiliates, setAffiliates] = useState([])
   const [loading, setLoading] = useState(true)
+  const refMap = { current: {} }
 
   useEffect(() => {
     Promise.all([
       supabase.from('affiliates').select('*').order('created_at', { ascending: false }),
       supabase.from('referrals').select('*').order('created_at', { ascending: false }),
     ]).then(([affRes, refRes]) => {
+      if (affRes.error) console.error('Error al cargar afiliados:', affRes.error.message)
+      if (refRes.error) console.error('Error al cargar referidos:', refRes.error.message)
       if (affRes.data) setAffiliates(affRes.data)
       if (refRes.data) {
         refMap.current = {}
@@ -670,10 +686,11 @@ function AffiliatesSection() {
         })
       }
       setLoading(false)
+    }).catch(err => {
+      console.error('Error al cargar afiliados:', err)
+      setLoading(false)
     })
   }, [])
-
-  const refMap = { current: {} }
 
   if (loading) {
     return (
@@ -741,10 +758,11 @@ function NovedadesSection() {
   const [saving, setSaving] = useState(false)
 
   const fetchNovedades = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('novedades')
       .select('*')
       .order('created_at', { ascending: false })
+    if (error) console.error('Error al cargar novedades:', error.message)
     if (data) setNovedades(data)
     setLoading(false)
   }
@@ -754,7 +772,7 @@ function NovedadesSection() {
   const handleCreate = async () => {
     if (!form.titulo.trim()) return
     setSaving(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('novedades')
       .insert({
         titulo: form.titulo.trim(),
@@ -764,6 +782,11 @@ function NovedadesSection() {
       })
       .select()
       .single()
+    if (error) {
+      console.error('Error al crear novedad:', error.message)
+      setSaving(false)
+      return
+    }
     if (data) {
       setNovedades(prev => [data, ...prev])
       setForm({ titulo: '', descripcion: '', categoria: 'general', fecha_evento: '' })
@@ -772,12 +795,21 @@ function NovedadesSection() {
   }
 
   const toggleActive = async (id, current) => {
-    await supabase.from('novedades').update({ activo: !current }).eq('id', id)
+    const { error } = await supabase.from('novedades').update({ activo: !current }).eq('id', id)
+    if (error) {
+      console.error('Error al cambiar visibilidad de novedad:', error.message)
+      return
+    }
     setNovedades(prev => prev.map(n => n.id === id ? { ...n, activo: !current } : n))
   }
 
   const handleDelete = async (id) => {
-    await supabase.from('novedades').delete().eq('id', id)
+    if (!window.confirm('¿Estás seguro de eliminar esta novedad? Esta acción no se puede deshacer.')) return
+    const { error } = await supabase.from('novedades').delete().eq('id', id)
+    if (error) {
+      console.error('Error al eliminar novedad:', error.message)
+      return
+    }
     setNovedades(prev => prev.filter(n => n.id !== id))
   }
 

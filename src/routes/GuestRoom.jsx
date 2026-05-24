@@ -6,10 +6,11 @@ import { useRoom } from '../hooks/useRoom'
 import { useGuestRequests } from '../hooks/useGuestRequests'
 import { useSessionMonitor } from '../hooks/useSessionMonitor'
 import { useHotelConfig, getInfoItems } from '../hooks/useHotelConfig'
+import GlassCard from '../components/GlassCard'
 import RequestModal from '../components/RequestModal'
 import ServiceCard from '../components/ServiceCard'
 import { services as fallbackServices } from '../data/hotel'
-import { getRoomPrice, getServicePrice, formatPrice } from '../data/prices'
+import { getRoomPrice, formatPrice } from '../data/prices'
 
 const CATEGORIES = ['todos', 'habitación', 'alimentos', 'logística']
 
@@ -24,7 +25,7 @@ export default function GuestRoom() {
   const { room, loading, error } = useRoom(uuid)
   const { requests: guestRequests } = useGuestRequests(room?.id)
   const sessionExpired = useSessionMonitor(room?.id)
-  const { config: hotelConfig, loading: configLoading } = useHotelConfig()
+  const { config: hotelConfig } = useHotelConfig()
 
   const [services, setServices] = useState(fallbackServices)
   const [hotel, setHotel] = useState({ name: 'Hotel', tagline: '', guestName: '' })
@@ -42,7 +43,11 @@ export default function GuestRoom() {
       .from('servicios')
       .select('*')
       .order('orden')
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Error al cargar servicios:', error.message)
+          return
+        }
         if (data && data.length > 0) {
           setServices(
             data.map((s) => ({
@@ -75,7 +80,11 @@ export default function GuestRoom() {
       .select('*')
       .eq('activo', true)
       .order('created_at', { ascending: false })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Error al cargar novedades:', error.message)
+          return
+        }
         if (data) setNovedades(data)
       })
   }, [])
@@ -91,12 +100,16 @@ export default function GuestRoom() {
         .eq('room_id', room.id)
         .order('created_at', { ascending: false })
         .limit(20)
-        .then(({ data }) => {
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error al cargar notificaciones:', error.message)
+            return
+          }
           if (data) {
             setNotificaciones(data)
             setNotiCount(data.filter(n => !n.leido).length)
           }
-        })
+        }).catch(err => console.error('Error fetching notificaciones:', err))
     }
 
     fetchNotis()
@@ -116,11 +129,15 @@ export default function GuestRoom() {
 
   const markLeidas = async () => {
     if (notiCount === 0) return
-    await supabase
+    const { error } = await supabase
       .from('notificaciones_habitacion')
       .update({ leido: true })
       .eq('room_id', room?.id)
       .eq('leido', false)
+    if (error) {
+      console.error('Error al marcar notificaciones como leídas:', error.message)
+      return
+    }
     setNotificaciones(prev => prev.map(n => ({ ...n, leido: true })))
     setNotiCount(0)
   }
@@ -232,12 +249,20 @@ export default function GuestRoom() {
           <div className="glass-dark rounded-2xl px-5 py-3.5 shadow-glass flex items-center justify-around">
             <div className="text-center">
               <p className="text-xs text-gray-400 mb-0.5">Check-in</p>
-              <p className="text-sm font-semibold text-gray-800">Hoy, 3 PM</p>
+              <p className="text-sm font-semibold text-gray-800">
+                {room?.check_in
+                  ? new Date(room.check_in).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })
+                  : '—'}
+              </p>
             </div>
             <div className="w-px h-8 bg-surface-3" />
             <div className="text-center">
               <p className="text-xs text-gray-400 mb-0.5">Check-out</p>
-              <p className="text-sm font-semibold text-gray-800">Mar 18, 12 PM</p>
+              <p className="text-sm font-semibold text-gray-800">
+                {room?.check_out
+                  ? new Date(room.check_out).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })
+                  : '—'}
+              </p>
             </div>
             <div className="w-px h-8 bg-surface-3" />
             <div className="text-center">

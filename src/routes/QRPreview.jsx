@@ -15,19 +15,18 @@ export default function QRPreview() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const fetchRooms = async () => {
+      setLoading(true)
+      const { data, error } = await supabase.from('rooms').select('*').order('numero')
+      if (error || !data || data.length === 0) {
+        setRooms(MOCK_ROOMS)
+      } else {
+        setRooms(data)
+      }
+      setLoading(false)
+    }
     fetchRooms()
   }, [])
-
-  async function fetchRooms() {
-    setLoading(true)
-    const { data, error } = await supabase.from('rooms').select('*').order('numero')
-    if (error || !data || data.length === 0) {
-      setRooms(MOCK_ROOMS)
-    } else {
-      setRooms(data)
-    }
-    setLoading(false)
-  }
 
   if (loading) {
     return (

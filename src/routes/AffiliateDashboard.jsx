@@ -11,32 +11,38 @@ export default function AffiliateDashboard() {
 
   useEffect(() => {
     if (!user) return
-    loadData()
-  }, [user])
 
-  async function loadData() {
-    const { data: affData } = await supabase
-      .from('affiliates')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle()
+    const loadData = async () => {
+      setLoading(true)
 
-    if (!affData) {
+      const { data: affData } = await supabase
+        .from('affiliates')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!affData) {
+        setLoading(false)
+        return
+      }
+
+      setAffiliate(affData)
+
+      const { data: refData } = await supabase
+        .from('referrals')
+        .select('*')
+        .eq('affiliate_id', affData.id)
+        .order('created_at', { ascending: false })
+
+      if (refData) {
+        setReferrals(refData)
+      }
+
       setLoading(false)
-      return
     }
 
-    setAffiliate(affData)
-
-    const { data: refData } = await supabase
-      .from('referrals')
-      .select('*')
-      .eq('affiliate_id', affData.id)
-      .order('created_at', { ascending: false })
-
-    if (refData) setReferrals(refData)
-    setLoading(false)
-  }
+    loadData()
+  }, [user])
 
   const baseUrl = window.location.origin
   const refLink = affiliate ? `${baseUrl}/beta-register?ref=${affiliate.ref_code}` : ''

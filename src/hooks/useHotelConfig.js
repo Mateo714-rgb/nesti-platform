@@ -35,15 +35,23 @@ export function useHotelConfig() {
   }, [])
 
   const updateConfig = async (updates) => {
-    const { data } = await supabase
-      .from('hotel_config')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', config.id)
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('hotel_config')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', config.id)
+        .select()
+        .single()
 
-    if (data) setConfig(data)
-    else setConfig((prev) => ({ ...prev, ...updates }))
+      if (error) {
+        console.error('Error updating config:', error.message)
+        return
+      }
+      if (data) setConfig(data)
+      else setConfig((prev) => ({ ...prev, ...updates }))
+    } catch (err) {
+      console.error('Error updating config:', err)
+    }
   }
 
   return { config, loading, updateConfig }

@@ -362,39 +362,51 @@ export default function Reception() {
       check_out: form.check_out ? new Date(form.check_out).toISOString() : null,
     }).eq('id', checkInRoom.id)
 
-    if (!error) {
-      setRooms(prev => prev.map(r =>
-        r.id === checkInRoom.id ? {
-          ...r,
-          token_sesion_actual: token,
-          huesped_nombre: form.huesped_nombre,
-          huesped_identificacion: form.huesped_identificacion,
-          huesped_telefono: form.huesped_telefono,
-          check_in: new Date(form.check_in).toISOString(),
-          check_out: form.check_out ? new Date(form.check_out).toISOString() : null,
-        } : r
-      ))
-      // Welcome notification
+    if (error) {
+      console.error('Error en check-in:', error.message)
+      setCheckInRoom(null)
+      return
+    }
+
+    setRooms(prev => prev.map(r =>
+      r.id === checkInRoom.id ? {
+        ...r,
+        token_sesion_actual: token,
+        huesped_nombre: form.huesped_nombre,
+        huesped_identificacion: form.huesped_identificacion,
+        huesped_telefono: form.huesped_telefono,
+        check_in: new Date(form.check_in).toISOString(),
+        check_out: form.check_out ? new Date(form.check_out).toISOString() : null,
+      } : r
+    ))
+
+    try {
       await supabase.from('notificaciones_habitacion').insert({
         room_id: checkInRoom.id,
         tipo: 'sistema',
         titulo: '¡Bienvenido!',
         mensaje: `Has hecho check-in en ${checkInRoom.nombre}. Escanea el código QR de tu habitación para acceder al portal de huéspedes.`,
       })
+    } catch (notiErr) {
+      console.error('Error al enviar notificación de bienvenida:', notiErr)
     }
+
     setCheckInRoom(null)
   }
 
   const handleCheckOut = async () => {
-    // Goodbye notification before clearing
-    await supabase.from('notificaciones_habitacion').insert({
-      room_id: checkOutRoom.id,
-      tipo: 'sistema',
-      titulo: 'Check-out completado',
-      mensaje: 'Gracias por tu estadía. ¡Esperamos verte pronto!',
-    })
+    try {
+      await supabase.from('notificaciones_habitacion').insert({
+        room_id: checkOutRoom.id,
+        tipo: 'sistema',
+        titulo: 'Check-out completado',
+        mensaje: 'Gracias por tu estadía. ¡Esperamos verte pronto!',
+      })
+    } catch (notiErr) {
+      console.error('Error al notificar check-out:', notiErr)
+    }
 
-    await supabase.from('rooms').update({
+    const { error } = await supabase.from('rooms').update({
       token_sesion_actual: null,
       huesped_nombre: null,
       huesped_identificacion: null,
@@ -403,6 +415,11 @@ export default function Reception() {
       check_out: null,
       estado_limpieza: 'sucia',
     }).eq('id', checkOutRoom.id)
+
+    if (error) {
+      console.error('Error en check-out:', error.message)
+      return
+    }
 
     setRooms(prev => prev.map(r =>
       r.id === checkOutRoom.id ? {
@@ -420,7 +437,11 @@ export default function Reception() {
   }
 
   const handleCleanRoom = async (roomId) => {
-    await supabase.from('rooms').update({ estado_limpieza: 'limpia' }).eq('id', roomId)
+    const { error } = await supabase.from('rooms').update({ estado_limpieza: 'limpia' }).eq('id', roomId)
+    if (error) {
+      console.error('Error al marcar habitación como limpia:', error.message)
+      return
+    }
     setRooms(prev => prev.map(r =>
       r.id === roomId ? { ...r, estado_limpieza: 'limpia' } : r
     ))
@@ -428,7 +449,11 @@ export default function Reception() {
 
   const handleToggleMaintenance = async (roomId, current) => {
     const next = current === 'mantenimiento' ? 'limpia' : 'mantenimiento'
-    await supabase.from('rooms').update({ estado_limpieza: next }).eq('id', roomId)
+    const { error } = await supabase.from('rooms').update({ estado_limpieza: next }).eq('id', roomId)
+    if (error) {
+      console.error('Error al cambiar modo mantenimiento:', error.message)
+      return
+    }
     setRooms(prev => prev.map(r =>
       r.id === roomId ? { ...r, estado_limpieza: next } : r
     ))
@@ -438,7 +463,6 @@ export default function Reception() {
   const occupiedRooms = rooms.filter(r => r.token_sesion_actual).length
   const availableRooms = rooms.filter(r => !r.token_sesion_actual && r.estado_limpieza === 'limpia').length
   const dirtyRooms = rooms.filter(r => r.estado_limpieza === 'sucia').length
-  const maintenanceRooms = rooms.filter(r => r.estado_limpieza === 'mantenimiento').length
   const occupancy = rooms.length > 0 ? Math.round((occupiedRooms / rooms.length) * 100) : 0
 
   // Request computations
@@ -446,8 +470,6 @@ export default function Reception() {
     ? requests
     : requests.filter(r => r.estado === filter)
   const pending = requests.filter(r => r.estado === 'pendiente').length
-  const inProgress = requests.filter(r => r.estado === 'aceptado').length
-  const completedCount = requests.filter(r => r.estado === 'completado').length
   const topService = useMemo(() => {
     if (requests.length === 0) return null
     const counts = {}
@@ -485,16 +507,24 @@ export default function Reception() {
     const next = req.estado === 'pendiente' ? 'aceptado' : 'completado'
     const updates = { estado: next }
     if (staffId) updates.asignado_a = staffId
-    await supabase.from('solicitudes_servicio').update(updates).eq('id', id)
 
-    // Log notification
+    const { error } = await supabase.from('solicitudes_servicio').update(updates).eq('id', id)
+    if (error) {
+      console.error('Error al avanzar solicitud:', error.message)
+      return
+    }
+
     if (req.room_id) {
-      const notiMsg = next === 'aceptado'
-        ? { titulo: 'Solicitud en proceso', mensaje: `Tu solicitud de "${req.tipo_servicio}" está siendo atendida` }
-        : { titulo: 'Solicitud completada', mensaje: `Tu "${req.tipo_servicio}" está listo. ¡Disfrútalo!` }
-      await supabase.from('notificaciones_habitacion').insert({
-        room_id: req.room_id, tipo: 'servicio', ...notiMsg,
-      })
+      try {
+        const notiMsg = next === 'aceptado'
+          ? { titulo: 'Solicitud en proceso', mensaje: `Tu solicitud de "${req.tipo_servicio}" está siendo atendida` }
+          : { titulo: 'Solicitud completada', mensaje: `Tu "${req.tipo_servicio}" está listo. ¡Disfrútalo!` }
+        await supabase.from('notificaciones_habitacion').insert({
+          room_id: req.room_id, tipo: 'servicio', ...notiMsg,
+        })
+      } catch (notiErr) {
+        console.error('Error al notificar avance:', notiErr)
+      }
     }
 
     setSelected(null)

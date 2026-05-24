@@ -10,21 +10,39 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const fetchPerfil = async (userId) => {
-    const { data } = await supabase
-      .from('perfiles')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle()
-    setPerfil(data || null)
+    try {
+      const { data, error } = await supabase
+        .from('perfiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (error) {
+        console.error('Error fetching perfil:', error.message)
+        setPerfil(null)
+        return
+      }
+      setPerfil(data || null)
+    } catch (err) {
+      console.error('Error fetching perfil:', err)
+      setPerfil(null)
+    }
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error.message)
+        setLoading(false)
+        return
+      }
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchPerfil(session.user.id)
       }
+      setLoading(false)
+    }).catch(err => {
+      console.error('Error getting session:', err)
       setLoading(false)
     })
 
@@ -47,9 +65,13 @@ export function AuthProvider({ children }) {
   const signUp = (email, password) =>
     supabase.auth.signUp({ email, password })
 
-  const signOut = () => {
+  const signOut = async () => {
     setPerfil(null)
-    return supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch (err) {
+      console.error('Error signing out:', err)
+    }
   }
 
   const refreshPerfil = () => {

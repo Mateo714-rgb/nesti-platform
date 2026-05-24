@@ -44,20 +44,25 @@ export default function BetaRegister() {
       return
     }
 
-    // Track referral if refCode exists (fire & forget)
+    // Track referral if refCode exists
     if (refCode) {
-      const { data: affData } = await supabase
-        .from('affiliates')
-        .select('id')
-        .eq('ref_code', refCode)
-        .maybeSingle()
+      try {
+        const { data: affData } = await supabase
+          .from('affiliates')
+          .select('id')
+          .eq('ref_code', refCode)
+          .maybeSingle()
 
-      if (affData) {
-        supabase.from('referrals').insert({
-          affiliate_id: affData.id,
-          hotel_name: form.hotel.trim(),
-          status: 'pending',
-        })
+        if (affData) {
+          const { error: refErr } = await supabase.from('referrals').insert({
+            affiliate_id: affData.id,
+            hotel_name: form.hotel.trim(),
+            status: 'pending',
+          })
+          if (refErr) console.error('Error al registrar referral:', refErr.message)
+        }
+      } catch (refErr) {
+        console.error('Error al procesar referral:', refErr)
       }
     }
 

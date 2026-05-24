@@ -12,18 +12,26 @@ export default function RequestModal({
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [customText, setCustomText] = useState('')
+  const [error, setError] = useState('')
 
   const handleSubmit = async () => {
     setSending(true)
+    setError('')
 
     const tipo = isCustom ? customText.trim() : service.title
 
-    await supabase.from('solicitudes_servicio').insert({
+    const { error: submitError } = await supabase.from('solicitudes_servicio').insert({
       room_id: roomId,
       tipo_servicio: tipo,
       nota: '',
       estado: 'pendiente',
     })
+
+    if (submitError) {
+      setError(submitError.message)
+      setSending(false)
+      return
+    }
 
     setSent(true)
     setSending(false)
@@ -105,6 +113,9 @@ export default function RequestModal({
               </div>
             )}
 
+            {error && (
+              <p className="text-xs text-red-500 bg-red-50 rounded-xl px-4 py-2 border border-red-100 mt-3">{error}</p>
+            )}
             <div className="flex gap-3 mt-4">
               <button
                 onClick={onClose}
