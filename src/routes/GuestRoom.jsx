@@ -13,10 +13,8 @@ import ChatPanel from '../components/ChatPanel'
 import { services as fallbackServices } from '../data/hotel'
 import { getRoomPrice, formatPrice } from '../data/prices'
 
-function getCategories(config) {
-  const base = ['todos', 'habitación', 'logística']
-  if (config?.modulo_comida_activo !== false) base.splice(2, 0, 'alimentos')
-  return base
+function getCategories() {
+  return ['todos', 'habitación', 'alimentos', 'logística']
 }
 
 const STATUS = {
@@ -182,13 +180,15 @@ export default function GuestRoom() {
     )
   }
 
-  const categories = getCategories(hotelConfig)
+  const categories = getCategories()
+  const foodActive = hotelConfig?.modulo_comida_activo !== false
 
   const filtered =
     activeCategory === 'todos'
-      ? services.filter((s) => hotelConfig?.modulo_comida_activo !== false || s.category !== 'alimentos')
+      ? services
       : services.filter((s) => s.category === activeCategory)
-        .filter((s) => hotelConfig?.modulo_comida_activo !== false || s.category !== 'alimentos')
+
+  const kitchenHours = hotelConfig?.horario_cocina || ''
 
   const today = new Date().toLocaleDateString('es-EC', {
     weekday: 'long', day: 'numeric', month: 'long',
@@ -315,25 +315,41 @@ export default function GuestRoom() {
             <motion.div key="services" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
               <div className="px-4 mb-4 overflow-x-auto scrollbar-none">
                 <div className="flex gap-2 w-max">
-                  {categories.map((c) => (
+                  {categories.map((c) => {
+                    const disabledCat = c === 'alimentos' && !foodActive
+                    return (
                     <button
                       key={c}
                       onClick={() => setActiveCategory(c)}
                       className={`px-4 py-1.5 rounded-full text-xs font-medium capitalize transition-all duration-200 whitespace-nowrap ${
                         activeCategory === c
                           ? 'bg-brand-600 text-white shadow-sm'
-                          : 'bg-surface-2 text-gray-500 hover:bg-surface-3'
+                          : disabledCat
+                            ? 'bg-brand-50 text-brand-400 border border-brand-200'
+                            : 'bg-surface-2 text-gray-500 hover:bg-surface-3'
                       }`}
                     >
-                      {c}
+                      {c}{disabledCat && ' ⏸'}
                     </button>
-                  ))}
+                  )})}
                 </div>
               </div>
 
+              {activeCategory === 'alimentos' && !foodActive && kitchenHours && (
+                <div className="px-4 mb-2">
+                  <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+                    <span className="text-sm">🍽️</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-brand-800">Cocina cerrada</p>
+                      <p className="text-[10px] text-brand-600">Horario: {kitchenHours}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="px-4 grid grid-cols-2 gap-3 pb-4">
                 {filtered.map((s, i) => (
-                  <ServiceCard key={s.id} {...s} index={i} onClick={() => setSelectedService(s)} />
+                  <ServiceCard key={s.id} {...s} index={i} disabled={s.category === 'alimentos' && !foodActive} onClick={() => setSelectedService(s)} />
                 ))}
                 {filtered.length === 0 && (
                   <div className="col-span-2 text-center py-12">

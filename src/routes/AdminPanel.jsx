@@ -1,9 +1,13 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { getRoomPrice, getServicePrice, formatPrice } from '../data/prices'
+import { useRealtimeRequests } from '../hooks/useRealtimeRequests'
+import { useHotelConfig } from '../hooks/useHotelConfig'
+import Toast, { useNotificationSound } from '../components/Toast'
+import StaffAssigner from '../components/StaffAssigner'
 
 function StatCard({ label, value, sub, accent }) {
   return (
@@ -554,6 +558,7 @@ export default function AdminPanel() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex bg-surface-2 rounded-2xl p-1 gap-1 mb-6">
         {[
           { id: 'rooms', label: 'Habitaciones' },
+          { id: 'recepcion', label: 'Recepción' },
           { id: 'dashboard', label: 'Dashboard' },
           { id: 'config', label: 'Configuración' },
           { id: 'affiliates', label: 'Afiliados' },
@@ -648,6 +653,11 @@ export default function AdminPanel() {
             </>
           )}
         </div>
+      )}
+
+      {/* ===== RECEPCIÓN ===== */}
+      {tab === 'recepcion' && (
+        <RecepcionSection />
       )}
 
       {/* ===== USUARIOS (ROLES) ===== */}
@@ -781,6 +791,229 @@ export default function AdminPanel() {
       )}
     </AnimatePresence>
   </>
+  )
+}
+
+function RecepcionSection() {
+  const { requests, loading } = useRealtimeRequests()
+  const { config: hotelConfig, updateConfig } = useHotelConfig()
+  const [assigning, setAssigning] = useState(null)
+  const [selected, setSelected] = useState(null)
+  const [foodActive, setFoodActive] = useState(true)
+  const [kitchenHours, setKitchenHours] = useState('')
+  const [menuText, setMenuText] = useState('')
+  const prevCount = useRef(0)
+  const [toast, setToast] = useState({ visible: false, message: '' })
+  const playSound = useNotificationSound()
+
+  useEffect(() => {
+    if (hotelConfig) {
+      setFoodActive(hotelConfig.modulo_comida_activo !== false)
+      setKitchenHours(hotelConfig.horario_cocina || '7:00 - 22:00')
+      setMenuText(hotelConfig.menu_del_dia_texto || '')
+    }
+  }, [hotelConfig])
+
+  useEffect(() => {
+    const count = requests.length
+    if (prevCount.current > 0 && count > prevCount.current) {
+      const latest = requests[0]
+      const roomNum = latest?.rooms?.numero || ''
+      setToast({ visible: true, message: `Hab. ${roomNum} — ${latest.tipo_servicio}` })
+      playSound()
+    }
+    prevCount.current = count
+  }, [requests, playSound])
+
+  const advance = async (id, staffId) => {
+    const req = requests.find(r => r.id === id)
+    if (!req) return
+    const next = req.estado === 'pendiente' ? 'aceptado' : 'completado'
+    const updates = { estado: next }
+    if (staffId) updates.asignado_a = staffId
+    await supabase.from('solicitudes_servicio').update(updates).eq('id', id)
+    if (req.room_id) {
+      try {
+        const notiMsg = next === 'aceptado'
+          ? { titulo: 'Solicitud en proceso', mensaje: `Tu solicitud de "${req.tipo_servicio}" está siendo atendida` }
+          : { titulo: 'Solicitud completada', mensaje: `Tu "${req.tipo_servicio}" está listo. ¡Disfrútalo!` }
+        await supabase.from('notificaciones_habitacion').insert({
+          room_id: req.room_id, tipo: 'servicio', ...notiMsg,
+        })
+      } catch (e) { console.error(e) }
+    }
+    setSelected(null)
+  }
+
+  const handleToggleFood = async (active) => {
+    setFoodActive(active)
+    await updateConfig({ modulo_comida_activo: active })
+  }
+
+  const handleSaveKitchen = async () => {
+    await updateConfig({ horario_cocina: kitchenHours, menu_del_dia_texto: menuText })
+  }
+
+  const STATUS = {
+    pendiente: { label: 'Pendiente', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+    aceptado: { label: 'En proceso', bg: 'bg-brand-50', text: 'text-brand-700', border: 'border-brand-200' },
+    completado: { label: 'Completado', bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200' },
+  }
+
+  const pending = requests.filter(r => r.estado === 'pendiente').length
+  const inProgress = requests.filter(r => r.estado === 'aceptado').length
+  const completed = requests.filter(r => r.estado === 'completado').length
+
+  if (loading) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-10 h-10 rounded-2xl bg-brand-100 animate-pulse mx-auto mb-3" />
+        <p className="text-sm text-gray-400">Cargando solicitudes...</p>
+      </div>
+    )
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pb-24">
+      <Toast message={toast.message} visible={toast.visible} onDismiss={() => setToast({ visible: false, message: '' })} />
+
+      {/* Stats bar */}
+      <div className="flex gap-2 mb-4">
+        <div className="flex-1 rounded-xl px-3 py-2 border bg-amber-50 border-amber-200">
+          <p className="text-lg font-display font-semibold text-amber-700">{pending}</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider">Pendientes</p>
+        </div>
+        <div className="flex-1 rounded-xl px-3 py-2 border bg-brand-50 border-brand-200">
+          <p className="text-lg font-display font-semibold text-brand-700">{inProgress}</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider">En proceso</p>
+        </div>
+        <div className="flex-1 rounded-xl px-3 py-2 border bg-gray-50 border-gray-200">
+          <p className="text-lg font-display font-semibold text-gray-500">{completed}</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider">Completados</p>
+        </div>
+      </div>
+
+      {/* Kitchen controls */}
+      <div className="bg-white rounded-2xl p-4 border border-surface-3 mb-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-gray-900">🍽️ Módulo de comida</p>
+            <p className="text-[10px] text-gray-400">Controlar servicio de alimentos para huéspedes</p>
+          </div>
+          <button onClick={() => handleToggleFood(!foodActive)}
+            className={`relative w-12 h-6 rounded-full transition-all duration-300 ${foodActive ? 'bg-brand-600' : 'bg-gray-300'}`}>
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-300 ${foodActive ? 'left-6' : 'left-0.5'}`} />
+          </button>
+        </div>
+        {foodActive && (
+          <div className="border-t border-surface-3 pt-3 space-y-2">
+            <div>
+              <label className="block text-[10px] font-medium text-gray-500 mb-1">Horario de cocina</label>
+              <input value={kitchenHours} onChange={e => setKitchenHours(e.target.value)}
+                className="w-full text-xs bg-surface-1 rounded-lg px-3 py-1.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-medium text-gray-500 mb-1">Menú del día</label>
+              <textarea value={menuText} onChange={e => setMenuText(e.target.value)} rows={2}
+                className="w-full text-xs bg-surface-1 rounded-lg px-3 py-1.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all resize-none" />
+            </div>
+            <button onClick={handleSaveKitchen}
+              className="text-xs font-medium text-brand-600 hover:text-brand-700 bg-brand-50 px-3 py-1 rounded-lg border border-brand-200 transition-all">
+              Guardar
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Kanban columns */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {['pendiente', 'aceptado', 'completado'].map(col => {
+          const st = STATUS[col]
+          const colReqs = requests.filter(r => r.estado === col)
+          return (
+            <motion.div key={col} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+              <div className={`rounded-xl px-3 py-2 border ${st.border} ${st.bg} flex items-center justify-between`}>
+                <span className={`text-xs font-semibold ${st.text}`}>{st.label}</span>
+                <span className={`text-xs font-mono ${st.text}`}>{colReqs.length}</span>
+              </div>
+              <div className="space-y-2 min-h-[120px]">
+                <AnimatePresence>
+                  {colReqs.map((req, i) => {
+                    const roomNum = req.rooms?.numero || '—'
+                    return (
+                      <motion.div key={req.id} layout initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ delay: i * 0.03, duration: 0.3 }}
+                        onClick={() => setSelected(req.id === selected ? null : req.id)}
+                        className={`rounded-xl border-2 p-3 cursor-pointer transition-all duration-200 ${
+                          selected === req.id ? 'border-brand-400 bg-white shadow-glass' : st.border + ' bg-white hover:shadow-sm'
+                        }`}>
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-xs font-bold ${st.text}`}>#{roomNum}</span>
+                            {req.staff && (
+                              <span className="text-[10px] text-gray-400">· {req.staff.nombre.split(' ')[0]}</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-gray-400 font-mono">
+                            {new Date(req.created_at).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900 leading-tight">{req.tipo_servicio}</p>
+                        {req.nota && (
+                          <p className="text-[10px] text-gray-500 mt-1 italic leading-relaxed">"{req.nota}"</p>
+                        )}
+
+                        <AnimatePresence>
+                          {selected === req.id && req.estado !== 'completado' && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                              <div className="flex gap-1.5 mt-2.5 pt-2.5 border-t border-surface-3">
+                                {req.estado === 'pendiente' && (
+                                  <button onClick={(e) => { e.stopPropagation(); setAssigning(req.id) }}
+                                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm">
+                                    👤 Asignar
+                                  </button>
+                                )}
+                                <button onClick={(e) => { e.stopPropagation(); advance(req.id) }}
+                                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 shadow-sm ${
+                                    req.estado === 'pendiente'
+                                      ? 'bg-amber-500 text-white hover:bg-amber-600'
+                                      : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                  }`}>
+                                  {req.estado === 'pendiente' ? '→ Aceptar' : '✓ Completar'}
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="flex gap-1 mt-2">
+                          <div className={`h-1 flex-1 rounded-full ${['pendiente', 'aceptado', 'completado'].indexOf(req.estado) >= 0 ? 'bg-brand-400' : 'bg-surface-3'}`} />
+                          <div className={`h-1 flex-1 rounded-full ${['aceptado', 'completado'].indexOf(req.estado) >= 0 ? 'bg-brand-500' : 'bg-surface-3'}`} />
+                          <div className={`h-1 flex-1 rounded-full ${req.estado === 'completado' ? 'bg-emerald-400' : 'bg-surface-3'}`} />
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
+                {colReqs.length === 0 && (
+                  <div className="flex items-center justify-center h-24 rounded-xl border-2 border-dashed border-surface-3">
+                    <p className="text-xs text-gray-400">Vacío</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )
+        })}
+      </div>
+
+      <AnimatePresence>
+        {assigning && (
+          <StaffAssigner requestId={assigning} onAssign={(id, staffId) => advance(id, staffId)} onClose={() => setAssigning(null)} />
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 
