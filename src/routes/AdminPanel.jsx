@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
-import { getRoomPrice, formatPrice } from '../data/prices'
+import { getRoomPrice, getServicePrice, formatPrice } from '../data/prices'
 
 function StatCard({ label, value, sub, accent }) {
   return (
@@ -27,21 +27,352 @@ function Bar({ label, value, max, color = 'bg-brand-500' }) {
   )
 }
 
+function CheckInModal({ room, onClose, onConfirm }) {
+  const [form, setForm] = useState({
+    huesped_nombre: '',
+    huesped_identificacion: '',
+    huesped_telefono: '',
+    check_in: new Date().toISOString().split('T')[0],
+    check_out: '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  const pricePerNight = getRoomPrice(room)
+  const nights = form.check_in && form.check_out
+    ? Math.max(1, Math.round((new Date(form.check_out) - new Date(form.check_in)) / (1000 * 60 * 60 * 24)))
+    : 1
+  const total = pricePerNight * nights
+
+  const handleSubmit = async () => {
+    if (!form.huesped_nombre.trim() || !form.huesped_identificacion.trim() || !form.check_out) return
+    setSaving(true)
+    await onConfirm({
+      ...form,
+      precio_noche: pricePerNight,
+      total_estimado: total,
+    })
+    setSaving(false)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="relative bg-white rounded-3xl w-full max-w-md mx-4 p-6 shadow-2xl"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">Check-In</p>
+            <h2 className="font-display text-xl font-semibold text-gray-900 mt-0.5">
+              Hab. {room.numero} — {room.nombre}
+            </h2>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-400">{formatPrice(pricePerNight)}/noche</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 mb-5">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Nombre del huésped *</label>
+            <input
+              value={form.huesped_nombre}
+              onChange={e => setForm(p => ({ ...p, huesped_nombre: e.target.value }))}
+              placeholder="Ej: Juan Pérez"
+              className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+              autoFocus
+            />
+          </div>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Identificación *</label>
+              <input
+                value={form.huesped_identificacion}
+                onChange={e => setForm(p => ({ ...p, huesped_identificacion: e.target.value }))}
+                placeholder="Cédula / Pasaporte"
+                className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Teléfono</label>
+              <input
+                value={form.huesped_telefono}
+                onChange={e => setForm(p => ({ ...p, huesped_telefono: e.target.value }))}
+                placeholder="+593..."
+                className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Check-In</label>
+              <input
+                type="date"
+                value={form.check_in}
+                onChange={e => setForm(p => ({ ...p, check_in: e.target.value }))}
+                className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Check-Out *</label>
+              <input
+                type="date"
+                value={form.check_out}
+                onChange={e => setForm(p => ({ ...p, check_out: e.target.value }))}
+                min={form.check_in}
+                className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-brand-50 rounded-2xl p-4 mb-5 border border-brand-100">
+          <div className="flex justify-between text-sm mb-1">
+            <span className="text-gray-600">{formatPrice(pricePerNight)} x {nights} noche{nights > 1 ? 's' : ''}</span>
+            <span className="font-semibold text-gray-900">{formatPrice(total)}</span>
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            {nights} noche{nights > 1 ? 's' : ''} de hospedaje
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-surface-2 hover:bg-surface-3 transition-all">
+            Cancelar
+          </button>
+          <button onClick={handleSubmit} disabled={saving || !form.huesped_nombre.trim() || !form.huesped_identificacion.trim() || !form.check_out}
+            className="flex-[2] py-2.5 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm disabled:opacity-50">
+            {saving ? 'Registrando...' : 'Confirmar Check-In'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function CheckOutModal({ room, requests, onClose, onConfirm }) {
+  const [saving, setSaving] = useState(false)
+
+  const pricePerNight = getRoomPrice(room)
+  const checkIn = room.check_in ? new Date(room.check_in) : new Date()
+  const checkOut = new Date()
+  const nights = Math.max(1, Math.round((checkOut - checkIn) / (1000 * 60 * 60 * 24)))
+  const roomTotal = pricePerNight * nights
+
+  const roomRequests = requests.filter(r => r.room_id === room.id)
+  const serviceCharges = roomRequests
+    .filter(r => r.estado === 'completado')
+    .reduce((sum, r) => sum + getServicePrice({ titulo: r.tipo_servicio }), 0)
+  const grandTotal = roomTotal + serviceCharges
+
+  const handleCheckOut = async () => {
+    setSaving(true)
+    await onConfirm()
+    setSaving(false)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="relative bg-white rounded-3xl w-full max-w-md mx-4 p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">Check-Out</p>
+            <h2 className="font-display text-xl font-semibold text-gray-900 mt-0.5">Hab. {room.numero}</h2>
+          </div>
+        </div>
+
+        <div className="bg-surface-1 rounded-2xl p-4 mb-4 space-y-1">
+          <p className="text-sm font-semibold text-gray-900">{room.huesped_nombre || 'Huésped'}</p>
+          {room.huesped_identificacion && (
+            <p className="text-xs text-gray-500">ID: {room.huesped_identificacion}</p>
+          )}
+          {room.huesped_telefono && (
+            <p className="text-xs text-gray-500">Tel: {room.huesped_telefono}</p>
+          )}
+        </div>
+
+        <div className="space-y-3 mb-5">
+          <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">Resumen de cuenta</p>
+
+          <div className="bg-white rounded-2xl border border-surface-3 p-4">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-gray-600">Alojamiento ({nights} noche{nights > 1 ? 's' : ''})</span>
+              <span className="font-semibold text-gray-900">{formatPrice(roomTotal)}</span>
+            </div>
+            <div className="text-xs text-gray-400 mb-3">
+              {formatPrice(pricePerNight)}/noche · {room.check_in ? new Date(room.check_in).toLocaleDateString() : '—'} → {checkOut.toLocaleDateString()}
+            </div>
+
+            {serviceCharges > 0 && (
+              <>
+                <div className="border-t border-surface-3 pt-3 mb-2">
+                  <p className="text-xs text-gray-400 mb-2">Servicios consumidos</p>
+                  {roomRequests.filter(r => r.estado === 'completado').map(r => (
+                    <div key={r.id} className="flex justify-between text-sm py-1">
+                      <span className="text-gray-600">{r.tipo_servicio}</span>
+                      <span className="text-gray-700">{formatPrice(getServicePrice({ titulo: r.tipo_servicio }))}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <div className="border-t border-surface-3 pt-3 mt-2">
+              <div className="flex justify-between text-base font-semibold">
+                <span className="text-gray-900">Total</span>
+                <span className="text-brand-700">{formatPrice(grandTotal)}</span>
+              </div>
+            </div>
+          </div>
+
+          {roomRequests.filter(r => r.estado !== 'completado').length > 0 && (
+            <div className="bg-amber-50 rounded-2xl p-3 border border-amber-200">
+              <p className="text-xs text-amber-800 font-medium">
+                ⚠️ {roomRequests.filter(r => r.estado !== 'completado').length} solicitud(es) pendiente(s) sin completar
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-surface-2 hover:bg-surface-3 transition-all">
+            Cancelar
+          </button>
+          <button onClick={handleCheckOut} disabled={saving}
+            className="flex-[2] py-2.5 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm disabled:opacity-50">
+            {saving ? 'Procesando...' : `Finalizar estadía — ${formatPrice(grandTotal)}`}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 export default function AdminPanel() {
   const [rooms, setRooms] = useState([])
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('dashboard')
+  const [checkInRoom, setCheckInRoom] = useState(null)
+  const [checkOutRoom, setCheckOutRoom] = useState(null)
 
   const fetchData = async () => {
     setLoading(true)
     const [roomsRes, reqsRes] = await Promise.all([
       supabase.from('rooms').select('*').order('numero'),
-      supabase.from('solicitudes_servicio').select('*').order('created_at', { ascending: false }),
+      supabase.from('solicitudes_servicio').select('*, rooms(numero)').order('created_at', { ascending: false }),
     ])
     if (!roomsRes.error && roomsRes.data) setRooms(roomsRes.data)
     if (!reqsRes.error && reqsRes.data) setRequests(reqsRes.data)
     setLoading(false)
+  }
+
+  const handleCheckIn = async (form) => {
+    const token = crypto.randomUUID()
+    const { error } = await supabase.from('rooms').update({
+      token_sesion_actual: token,
+      huesped_nombre: form.huesped_nombre,
+      huesped_identificacion: form.huesped_identificacion,
+      huesped_telefono: form.huesped_telefono,
+      check_in: new Date(form.check_in).toISOString(),
+      check_out: form.check_out ? new Date(form.check_out).toISOString() : null,
+    }).eq('id', checkInRoom.id)
+
+    if (error) {
+      console.error('Error en check-in:', error.message)
+      setCheckInRoom(null)
+      return
+    }
+
+    setRooms(prev => prev.map(r =>
+      r.id === checkInRoom.id ? {
+        ...r,
+        token_sesion_actual: token,
+        huesped_nombre: form.huesped_nombre,
+        huesped_identificacion: form.huesped_identificacion,
+        huesped_telefono: form.huesped_telefono,
+        check_in: new Date(form.check_in).toISOString(),
+        check_out: form.check_out ? new Date(form.check_out).toISOString() : null,
+      } : r
+    ))
+
+    try {
+      await supabase.from('notificaciones_habitacion').insert({
+        room_id: checkInRoom.id,
+        tipo: 'sistema',
+        titulo: '¡Bienvenido!',
+        mensaje: `Has hecho check-in en ${checkInRoom.nombre}. Escanea el código QR de tu habitación para acceder a los servicios del hotel.`,
+      })
+    } catch (notiErr) {
+      console.error('Error al enviar notificación de bienvenida:', notiErr)
+    }
+
+    setCheckInRoom(null)
+  }
+
+  const handleCheckOut = async () => {
+    try {
+      await supabase.from('notificaciones_habitacion').insert({
+        room_id: checkOutRoom.id,
+        tipo: 'sistema',
+        titulo: 'Check-out completado',
+        mensaje: 'Gracias por tu estadía. ¡Esperamos verte pronto!',
+      })
+    } catch (notiErr) {
+      console.error('Error al enviar notificación:', notiErr)
+    }
+
+    const { error } = await supabase.from('rooms').update({
+      token_sesion_actual: null,
+      huesped_nombre: null,
+      huesped_identificacion: null,
+      huesped_telefono: null,
+      check_in: null,
+      check_out: null,
+      estado_limpieza: 'sucia',
+    }).eq('id', checkOutRoom.id)
+
+    if (error) {
+      console.error('Error en check-out:', error.message)
+      return
+    }
+
+    setRooms(prev => prev.map(r =>
+      r.id === checkOutRoom.id ? {
+        ...r,
+        token_sesion_actual: null,
+        huesped_nombre: null,
+        huesped_identificacion: null,
+        huesped_telefono: null,
+        check_in: null,
+        check_out: null,
+        estado_limpieza: 'sucia',
+      } : r
+    ))
+    setCheckOutRoom(null)
   }
 
   useEffect(() => {
@@ -112,6 +443,7 @@ export default function AdminPanel() {
   }, [requests])
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-surface-1 via-white to-brand-50/40 px-4 py-6 max-w-4xl mx-auto">
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <p className="text-xs text-gray-400 tracking-widest uppercase font-medium mb-1">Panel Administrativo</p>
@@ -164,52 +496,108 @@ export default function AdminPanel() {
                 <StatCard label="Ocupadas" value={stats.activeRooms} sub={`${stats.occupancy}% ocupación`} accent={stats.activeRooms > 0 ? 'bg-brand-50 border-brand-200' : ''} />
                 <StatCard label="Disponibles" value={stats.totalRooms - stats.activeRooms} sub="libres" />
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4">
-                <p className="text-xs text-amber-800 font-medium">
-                  ⚙️ Check-in / Check-out operativos desde el <a href="/reception" className="underline font-semibold">Panel de Recepción</a>
-                </p>
-              </div>
-              <div className="space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {rooms.map((room, i) => {
-                  const active = !!room.token_sesion_actual
+                  const occupied = !!room.token_sesion_actual
+                  const dirty = room.estado_limpieza === 'sucia'
+                  const maintenance = room.estado_limpieza === 'mantenimiento'
                   const price = getRoomPrice(room)
                   return (
-                    <motion.div key={room.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04, duration: 0.35 }}
-                      className={`rounded-2xl border p-5 transition-all duration-200 ${active ? 'bg-white border-brand-200 shadow-glass' : 'bg-white border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]'}`}>
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${active ? 'bg-brand-50 text-brand-700 border border-brand-200' : 'bg-surface-2 text-gray-500 border border-surface-3'}`}>
-                            {room.numero}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-semibold text-gray-900">{room.nombre}</p>
-                              <span className="text-xs text-gray-400 bg-surface-2 px-2 py-0.5 rounded-full">{room.tipo}</span>
-                              <span className="text-xs font-semibold text-brand-600">{formatPrice(price)}/noche</span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-400' : 'bg-gray-300'}`} />
-                              <span className={`text-xs ${active ? 'text-emerald-700 font-medium' : 'text-gray-400'}`}>
-                                {active ? 'Ocupada' : 'Disponible'}
-                              </span>
-                              {active && room.huesped_nombre && (
-                                <>
-                                  <span className="text-gray-300">·</span>
-                                  <span className="text-xs text-gray-500">{room.huesped_nombre}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
+                    <motion.div
+                      key={room.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03, duration: 0.35 }}
+                      onClick={() => {
+                        if (occupied) {
+                          setCheckOutRoom(room)
+                        } else if (!dirty && !maintenance) {
+                          setCheckInRoom(room)
+                        }
+                      }}
+                      className={`relative rounded-2xl border p-4 transition-all duration-200 cursor-pointer select-none ${
+                        occupied
+                          ? 'bg-white border-brand-200 shadow-glass hover:shadow-md'
+                          : dirty
+                            ? 'bg-amber-50/50 border-amber-200 hover:border-amber-300'
+                            : maintenance
+                              ? 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                              : 'bg-white border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-brand-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-lg font-bold ${
+                          occupied ? 'text-brand-700' : dirty ? 'text-amber-600' : maintenance ? 'text-gray-400' : 'text-gray-700'
+                        }`}>
+                          {room.numero}
+                        </span>
+                        {occupied && (
+                          <span className="text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                            Ocupada
+                          </span>
+                        )}
+                        {!occupied && dirty && (
+                          <span className="text-[10px] font-medium text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
+                            Por limpiar
+                          </span>
+                        )}
+                        {!occupied && maintenance && (
+                          <span className="text-[10px] font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                            Mantenimiento
+                          </span>
+                        )}
+                        {!occupied && !dirty && !maintenance && (
+                          <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            Disponible
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-gray-500 truncate mb-2">{room.tipo}</p>
+
+                      {occupied && room.huesped_nombre && (
+                        <p className="text-[10px] text-blue-600 truncate font-medium mb-2">{room.huesped_nombre}</p>
+                      )}
+
+                      {!occupied && (
+                        <div className="flex gap-1.5 mt-2 pt-2 border-t border-surface-2">
+                          {dirty && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation()
+                                await supabase.from('rooms').update({ estado_limpieza: 'limpia' }).eq('id', room.id)
+                                setRooms(prev => prev.map(r => r.id === room.id ? { ...r, estado_limpieza: 'limpia' } : r))
+                              }}
+                              className="flex-1 text-[10px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-1 rounded-lg transition-all"
+                            >
+                              Limpiar
+                            </button>
+                          )}
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation()
+                              const newStatus = maintenance ? 'limpia' : 'mantenimiento'
+                              await supabase.from('rooms').update({ estado_limpieza: newStatus }).eq('id', room.id)
+                              setRooms(prev => prev.map(r => r.id === room.id ? { ...r, estado_limpieza: newStatus } : r))
+                            }}
+                            className={`flex-1 text-[10px] font-medium border px-2 py-1 rounded-lg transition-all ${
+                              maintenance
+                                ? 'text-gray-600 bg-gray-50 hover:bg-gray-100 border-gray-200'
+                                : 'text-brand-600 bg-brand-50 hover:bg-brand-100 border-brand-200'
+                            }`}
+                          >
+                            {maintenance ? 'Activar' : 'Mantenim.'}
+                          </button>
                         </div>
-                        <div className="text-right shrink-0">
-                          {active && room.check_out && (
-                            <p className="text-xs text-gray-400">
-                              Check-out: {new Date(room.check_out).toLocaleDateString()}
-                            </p>
+                      )}
+
+                      {occupied && (
+                        <div className="text-[10px] text-gray-400 mt-1">
+                          {room.check_out && (
+                            <span>Salida: {new Date(room.check_out).toLocaleDateString()}</span>
                           )}
                         </div>
-                      </div>
+                      )}
                     </motion.div>
                   )
                 })}
@@ -330,8 +718,20 @@ export default function AdminPanel() {
           </div>
         </motion.div>
       )}
-
     </div>
+
+    <AnimatePresence>
+      {checkInRoom && (
+        <CheckInModal room={checkInRoom} onClose={() => setCheckInRoom(null)} onConfirm={handleCheckIn} />
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {checkOutRoom && (
+        <CheckOutModal room={checkOutRoom} requests={requests} onClose={() => setCheckOutRoom(null)} onConfirm={handleCheckOut} />
+      )}
+    </AnimatePresence>
+  </>
   )
 }
 
