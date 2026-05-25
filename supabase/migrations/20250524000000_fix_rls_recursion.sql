@@ -1,0 +1,339 @@
+-- ============================================================
+-- Nesti — Script Único de Base de Datos
+-- 100% idempotente. Ejecutar en Supabase SQL Editor.
+-- ============================================================
+
+-- ============================================================
+-- 1. TABLAS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS rooms (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  numero VARCHAR(10) NOT NULL UNIQUE,
+  nombre VARCHAR(100) NOT NULL,
+  tipo VARCHAR(50) DEFAULT 'estándar',
+  descripcion TEXT,
+  precio_noche DECIMAL(10,2) DEFAULT 0,
+  estado_limpieza VARCHAR(20) DEFAULT 'limpia' CHECK (estado_limpieza IN ('limpia', 'sucia', 'mantenimiento')),
+  token_sesion_actual UUID DEFAULT NULL,
+  huesped_nombre TEXT DEFAULT NULL,
+  huesped_identificacion TEXT DEFAULT NULL,
+  huesped_telefono TEXT DEFAULT NULL,
+  check_in TIMESTAMPTZ DEFAULT NULL,
+  check_out TIMESTAMPTZ DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS servicios (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  categoria TEXT NOT NULL,
+  icono TEXT NOT NULL,
+  titulo TEXT NOT NULL,
+  descripcion TEXT DEFAULT '',
+  tiempo_estimado TEXT DEFAULT '',
+  precio DECIMAL(8,2) DEFAULT 0,
+  orden INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS staff (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL,
+  rol TEXT NOT NULL CHECK (rol IN ('mucama', 'botones', 'cocina', 'recepcion', 'mantenimiento')),
+  avatar TEXT DEFAULT '',
+  activo BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS solicitudes_servicio (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  tipo_servicio TEXT NOT NULL,
+  nota TEXT DEFAULT '',
+  estado VARCHAR(20) NOT NULL DEFAULT 'pendiente'
+    CHECK (estado IN ('pendiente', 'aceptado', 'completado')),
+  asignado_a UUID REFERENCES staff(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS hotel_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL DEFAULT 'Mi Hotel',
+  tagline TEXT DEFAULT '',
+  guest_name TEXT DEFAULT 'Huésped',
+  wifi_name TEXT DEFAULT '',
+  wifi_password TEXT DEFAULT '',
+  breakfast_info TEXT DEFAULT '',
+  pool_info TEXT DEFAULT '',
+  parking_info TEXT DEFAULT '',
+  reception_info TEXT DEFAULT '',
+  check_out_info TEXT DEFAULT '',
+  address TEXT DEFAULT '',
+  modulo_comida_activo BOOLEAN DEFAULT true,
+  menu_del_dia_texto TEXT DEFAULT '',
+  horario_cocina TEXT DEFAULT '7:00 - 22:00',
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS beta_registrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre TEXT NOT NULL,
+  email TEXT NOT NULL,
+  hotel TEXT NOT NULL,
+  telefono TEXT DEFAULT '',
+  hotel_size TEXT DEFAULT '',
+  mensaje TEXT DEFAULT '',
+  ref_code TEXT DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS affiliates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  nombre TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  ref_code TEXT NOT NULL UNIQUE,
+  payout_email TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS referrals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  affiliate_id UUID NOT NULL REFERENCES affiliates(id) ON DELETE CASCADE,
+  beta_registration_id UUID REFERENCES beta_registrations(id) ON DELETE SET NULL,
+  hotel_name TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'paid')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS novedades (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  titulo TEXT NOT NULL,
+  descripcion TEXT DEFAULT '',
+  categoria TEXT DEFAULT 'general' CHECK (categoria IN ('general', 'evento', 'comida', 'actividad')),
+  fecha_evento DATE DEFAULT NULL,
+  activo BOOLEAN DEFAULT true,
+  hotel_id UUID DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS perfiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+  email TEXT NOT NULL,
+  rol TEXT NOT NULL DEFAULT 'recepcion' CHECK (rol IN ('owner', 'recepcion')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS notificaciones_habitacion (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL DEFAULT 'servicio' CHECK (tipo IN ('servicio', 'novedad', 'sistema')),
+  titulo TEXT NOT NULL,
+  mensaje TEXT DEFAULT '',
+  leido BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS chat_mensajes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  room_numero VARCHAR(10) NOT NULL DEFAULT '',
+  nombre_emisor TEXT NOT NULL DEFAULT 'Huésped',
+  mensaje TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ============================================================
+-- 1b. MIGRACIONES COLUMNAS FALTANTES
+-- ============================================================
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS precio_noche DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS estado_limpieza VARCHAR(20) DEFAULT 'limpia' CHECK (estado_limpieza IN ('limpia', 'sucia', 'mantenimiento'));
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS huesped_nombre TEXT DEFAULT NULL;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS huesped_identificacion TEXT DEFAULT NULL;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS huesped_telefono TEXT DEFAULT NULL;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS check_in TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS check_out TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE servicios ADD COLUMN IF NOT EXISTS precio DECIMAL(8,2) DEFAULT 0;
+ALTER TABLE hotel_config ADD COLUMN IF NOT EXISTS modulo_comida_activo BOOLEAN DEFAULT true;
+ALTER TABLE hotel_config ADD COLUMN IF NOT EXISTS menu_del_dia_texto TEXT DEFAULT '';
+ALTER TABLE hotel_config ADD COLUMN IF NOT EXISTS horario_cocina TEXT DEFAULT '7:00 - 22:00';
+
+-- ============================================================
+-- 2. ÍNDICES
+-- ============================================================
+CREATE INDEX IF NOT EXISTS idx_solicitudes_estado ON solicitudes_servicio(estado);
+CREATE INDEX IF NOT EXISTS idx_solicitudes_creado ON solicitudes_servicio(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_solicitudes_room ON solicitudes_servicio(room_id);
+CREATE INDEX IF NOT EXISTS idx_rooms_token ON rooms(token_sesion_actual);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_room ON notificaciones_habitacion(room_id);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_leido ON notificaciones_habitacion(room_id, leido);
+CREATE INDEX IF NOT EXISTS idx_chat_mensajes_creado ON chat_mensajes(created_at DESC);
+
+-- ============================================================
+-- 3. ROW LEVEL SECURITY
+-- ============================================================
+
+-- 3a. Eliminar todas las policies existentes (seguro, IF EXISTS)
+DO $$ DECLARE rec RECORD; BEGIN
+  FOR rec IN SELECT policyname, tablename FROM pg_policies WHERE schemaname = 'public'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', rec.policyname, rec.tablename);
+  END LOOP;
+END $$;
+
+-- 3a. Función helper SECURITY DEFINER para evitar recursión infinita en RLS
+CREATE OR REPLACE FUNCTION public.is_owner()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner'
+  );
+$$;
+
+-- 3b. Habilitar RLS en todas las tablas
+ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE solicitudes_servicio ENABLE ROW LEVEL SECURITY;
+ALTER TABLE servicios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hotel_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE perfiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notificaciones_habitacion ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_mensajes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE beta_registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE affiliates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE referrals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE novedades ENABLE ROW LEVEL SECURITY;
+
+-- 3c. Crear todas las policies
+
+-- ROOMS
+CREATE POLICY "Rooms visibles para huéspedes con sesión activa" ON rooms FOR SELECT TO anon USING (token_sesion_actual IS NOT NULL);
+CREATE POLICY "Rooms visibles para staff autenticado" ON rooms FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Rooms editables por staff autenticado" ON rooms FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+-- SOLICITUDES_SERVICIO
+CREATE POLICY "Solicitudes visibles para el huésped de la habitación" ON solicitudes_servicio FOR SELECT TO anon USING (room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL));
+CREATE POLICY "Solicitudes insertables por el huésped" ON solicitudes_servicio FOR INSERT TO anon WITH CHECK (room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL));
+CREATE POLICY "Solicitudes visibles para staff autenticado" ON solicitudes_servicio FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Solicitudes editables por staff autenticado" ON solicitudes_servicio FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+-- SERVICIOS
+CREATE POLICY "Servicios visibles para todos" ON servicios FOR SELECT TO anon, authenticated USING (true);
+
+-- STAFF
+CREATE POLICY "Staff visible para autenticado" ON staff FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Staff editable por owner" ON staff FOR INSERT TO authenticated WITH CHECK (public.is_owner());
+CREATE POLICY "Staff actualizable por owner" ON staff FOR UPDATE TO authenticated USING (public.is_owner());
+
+-- HOTEL_CONFIG
+CREATE POLICY "Config visible para todos" ON hotel_config FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "Config editable por staff" ON hotel_config FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+-- PERFILES
+CREATE POLICY "Perfiles visibles para owners" ON perfiles FOR SELECT TO authenticated USING (public.is_owner() OR user_id = auth.uid());
+CREATE POLICY "Perfiles editables por owners" ON perfiles FOR INSERT TO authenticated WITH CHECK (public.is_owner());
+CREATE POLICY "Perfiles actualizables por owners" ON perfiles FOR UPDATE TO authenticated USING (public.is_owner()) WITH CHECK (public.is_owner());
+
+-- NOTIFICACIONES_HABITACION
+CREATE POLICY "Notificaciones visibles para el huésped de la habitación" ON notificaciones_habitacion FOR SELECT TO anon USING (room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL));
+CREATE POLICY "Notificaciones insertables por authenticated" ON notificaciones_habitacion FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Notificaciones actualizables por el huésped" ON notificaciones_habitacion FOR UPDATE TO anon USING (room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL));
+
+-- CHAT_MENSAJES
+CREATE POLICY "Chat visible para huéspedes con sesión activa" ON chat_mensajes FOR SELECT TO anon USING (room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL));
+CREATE POLICY "Chat insertable por huéspedes con sesión activa" ON chat_mensajes FOR INSERT TO anon WITH CHECK (room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL));
+CREATE POLICY "Chat visible para staff autenticado" ON chat_mensajes FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Chat insertable por staff autenticado" ON chat_mensajes FOR INSERT TO authenticated WITH CHECK (true);
+
+-- BETA_REGISTRATIONS
+CREATE POLICY "Beta registrations insertables por cualquiera" ON beta_registrations FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Beta registrations visibles solo para owner" ON beta_registrations FOR SELECT TO authenticated USING (public.is_owner());
+
+-- AFFILIATES
+CREATE POLICY "Affiliates insertables por cualquiera" ON affiliates FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Affiliates visibles para el propio usuario o owner" ON affiliates FOR SELECT TO authenticated USING (user_id = auth.uid() OR public.is_owner());
+
+-- REFERRALS
+CREATE POLICY "Referrals insertables por cualquiera" ON referrals FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY "Referrals visibles para owner o afiliado relacionado" ON referrals FOR SELECT TO authenticated USING (public.is_owner() OR affiliate_id IN (SELECT id FROM affiliates WHERE user_id = auth.uid()));
+
+-- NOVEDADES
+CREATE POLICY "Novedades insertable por admin autenticado" ON novedades FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Novedades editables por admin autenticado" ON novedades FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Novedades visibles para todos (lectura)" ON novedades FOR SELECT TO anon, authenticated USING (true);
+
+-- ============================================================
+-- 4. SEED DATA
+-- ============================================================
+
+-- SERVICIOS
+INSERT INTO servicios (categoria, icono, titulo, descripcion, tiempo_estimado, precio, orden) VALUES
+  ('habitación', '🛏️', 'Limpieza de habitación', 'Solicita limpieza o cambio de ropa de cama', '20 min', 0, 1),
+  ('habitación', '🪣', 'Toallas extra', 'Toallas de baño o de piscina', '10 min', 0, 2),
+  ('habitación', '🧊', 'Reabastecer minibar', 'Agua, jugos, snacks disponibles', '15 min', 5.00, 3),
+  ('alimentos', '🍽️', 'Room service', 'Menú disponible de 7am a 10pm', '35 min', 12.00, 4),
+  ('alimentos', '☕', 'Desayuno en habitación', 'Disfruta el desayuno sin salir del cuarto', '25 min', 8.00, 5),
+  ('logística', '🚗', 'Transporte', 'Taxi al aeropuerto, city tour, excursiones', '30 min', 25.00, 6),
+  ('logística', '👕', 'Lavandería', 'Entrega en bolsa antes de las 9am, lista a las 6pm', '9h', 15.00, 7),
+  ('logística', '📍', 'Información local', 'Restaurantes, actividades, mapas de Mindo', '5 min', 0, 8)
+ON CONFLICT DO NOTHING;
+
+-- STAFF
+INSERT INTO staff (nombre, rol) VALUES
+  ('María Gómez', 'mucama'),
+  ('Carlos Ruiz', 'mucama'),
+  ('Pedro Martínez', 'botones'),
+  ('Ana López', 'cocina'),
+  ('Luis Vega', 'cocina'),
+  ('Sofía Torres', 'recepcion'),
+  ('Jorge Mora', 'mantenimiento')
+ON CONFLICT DO NOTHING;
+
+-- CONFIG INICIAL
+INSERT INTO hotel_config (name, tagline, guest_name, wifi_name, wifi_password, breakfast_info, pool_info, parking_info, reception_info, check_out_info, address)
+VALUES (
+  'Casa del Árbol',
+  'Boutique Lodge · Mindo, Ecuador',
+  'Sebastián',
+  'CasaArbol_Guest',
+  'orquidea2024',
+  'Incluido. Buffet de 7:00 – 10:30 AM en el comedor principal',
+  'Abierta de 8 AM a 8 PM. Toallas disponibles en recepción',
+  'Gratuito. Zona vigilada 24h, sótano nivel B1',
+  'Disponible 24 horas. Llama al ext. 0 desde el teléfono de tu habitación',
+  'Hasta las 12:00 PM. Extensión disponible según disponibilidad (cobro extra)',
+  'Av. Quito km 4.5, Mindo, Ecuador'
+)
+ON CONFLICT DO NOTHING;
+
+-- HABITACIONES DE EJEMPLO
+INSERT INTO rooms (numero, nombre, tipo, descripcion, precio_noche) VALUES
+  ('101', 'Habitación Estándar', 'Estándar', 'Habitación con cama queen, baño privado y vistas al jardín', 80.00),
+  ('102', 'Habitación Estándar', 'Estándar', 'Habitación con cama queen, baño privado y vistas al jardín', 80.00),
+  ('103', 'Habitación Estándar', 'Estándar', 'Habitación con cama queen, baño privado y vistas al jardín', 80.00),
+  ('201', 'Suite Orquídea', 'Suite Junior', 'Suite con cama king, balcón privado y bañera de inmersión', 120.00),
+  ('202', 'Suite Orquídea', 'Suite Junior', 'Suite con cama king, balcón privado y bañera de inmersión', 120.00),
+  ('301', 'Suite Panorámica', 'Suite', 'Suite de lujo con vistas a las montañas, sala de estar y terraza', 180.00),
+  ('112', 'Cabaña del Bosque', 'Cabaña', 'Cabaña privada rodeada de naturaleza con fogatero exterior', 90.00)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- 5. REALTIME
+-- ============================================================
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'solicitudes_servicio') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE solicitudes_servicio;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'rooms') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE rooms;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'chat_mensajes') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE chat_mensajes;
+  END IF;
+END $$;
