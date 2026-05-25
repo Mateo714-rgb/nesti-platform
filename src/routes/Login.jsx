@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 
 export default function Login() {
@@ -9,33 +8,34 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const { signIn, perfil, user } = useAuth()
+  const { signIn, perfil, user, perfilLoading } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const redirect = searchParams.get('redirect') || ''
 
-  // Once perfil loads, redirect to the correct panel
+  // Once user + perfil are ready, redirect to the correct panel
   useEffect(() => {
-    if (!user || !perfil) return
+    if (!user) return
+    if (perfilLoading) return
 
     if (redirect) {
       navigate(redirect, { replace: true })
       return
     }
 
-    if (perfil.rol === 'owner') {
+    if (perfil?.rol === 'owner') {
       navigate('/admin', { replace: true })
     } else {
       navigate('/reception', { replace: true })
     }
-  }, [user, perfil, navigate, redirect])
+  }, [user, perfil, perfilLoading, navigate, redirect])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSubmitting(true)
 
-    const { data, error: err } = await signIn(email, password)
+    const { error: err } = await signIn(email, password)
 
     if (err) {
       setError(
@@ -47,29 +47,8 @@ export default function Login() {
       return
     }
 
-    // Buscar perfil directamente con el usuario retornado para redirigir
-    if (data?.user) {
-      try {
-        const { data: perfilData } = await supabase
-          .from('perfiles')
-          .select('rol')
-          .eq('user_id', data.user.id)
-          .maybeSingle()
-
-        if (perfilData?.rol === 'owner') {
-          navigate('/admin', { replace: true })
-          return
-        }
-        if (perfilData?.rol === 'recepcion') {
-          navigate('/reception', { replace: true })
-          return
-        }
-      } catch (e) {
-        console.warn('Error al obtener perfil, redirigiendo por defecto')
-      }
-    }
-
-    navigate(redirect || '/admin', { replace: true })
+    // Don't navigate here — let the useEffect handle it when state is ready
+    setSubmitting(false)
   }
 
   return (
@@ -108,6 +87,7 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="correo@hotel.com"
                 required
+                autoComplete="email"
                 className="w-full text-sm bg-surface-1 rounded-xl px-4 py-3 border border-surface-3 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all placeholder:text-gray-300"
               />
             </div>
@@ -122,6 +102,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                autoComplete="current-password"
                 className="w-full text-sm bg-surface-1 rounded-xl px-4 py-3 border border-surface-3 focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all placeholder:text-gray-300"
               />
             </div>
