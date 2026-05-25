@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { getRoomPrice, getServicePrice, formatPrice } from '../data/prices'
@@ -271,6 +272,92 @@ function CheckOutModal({ room, requests, onClose, onConfirm }) {
   )
 }
 
+function QRModal({ room, onClose }) {
+  const url = `${window.location.origin}/r/${room.id}`
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="relative bg-white rounded-3xl p-6 shadow-2xl mx-4 text-center"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">QR de acceso</p>
+            <h2 className="font-display text-lg font-semibold text-gray-900 mt-0.5">Hab. {room.numero}</h2>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        </div>
+        <div className="bg-white rounded-2xl border-2 border-surface-3 inline-block p-3 mb-4">
+          <QRCodeSVG value={url} size={200} bgColor="#ffffff" fgColor="#147474" level="M" />
+        </div>
+        <p className="text-xs text-gray-500 mb-1">Escanea para acceder al portal</p>
+        <p className="text-xs text-brand-600 font-mono truncate max-w-[260px] mx-auto">{url}</p>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function RoomActions({ room, onCheckIn, onCheckOut, onShowQR, onAction }) {
+  const occupied = !!room.token_sesion_actual
+  const dirty = room.estado_limpieza === 'sucia'
+  const maintenance = room.estado_limpieza === 'mantenimiento'
+
+  return (
+    <div className="flex gap-1.5">
+      {occupied ? (
+        <>
+          <button onClick={(e) => { e.stopPropagation(); onCheckOut(room) }}
+            className="flex-1 text-[10px] font-semibold text-white bg-brand-600 hover:bg-brand-700 px-2 py-1.5 rounded-lg transition-all">
+            Check-out
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onShowQR(room) }}
+            className="text-[10px] font-medium text-brand-600 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2 py-1.5 rounded-lg transition-all">
+            QR
+          </button>
+        </>
+      ) : (
+        <>
+          {!dirty && !maintenance && (
+            <button onClick={(e) => { e.stopPropagation(); onCheckIn(room) }}
+              className="flex-1 text-[10px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 px-2 py-1.5 rounded-lg transition-all">
+              Check-in
+            </button>
+          )}
+          {dirty && (
+            <button onClick={async (e) => {
+              e.stopPropagation()
+              await supabase.from('rooms').update({ estado_limpieza: 'limpia' }).eq('id', room.id)
+              onAction()
+            }}
+              className="flex-1 text-[10px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-1.5 rounded-lg transition-all">
+              Limpiar
+            </button>
+          )}
+          <button onClick={async (e) => {
+            e.stopPropagation()
+            const ns = maintenance ? 'limpia' : 'mantenimiento'
+            await supabase.from('rooms').update({ estado_limpieza: ns }).eq('id', room.id)
+            onAction()
+          }}
+            className={`text-[10px] font-medium border px-2 py-1.5 rounded-lg transition-all ${
+              maintenance ? 'text-gray-600 bg-gray-50 hover:bg-gray-100 border-gray-200' : 'text-brand-600 bg-brand-50 hover:bg-brand-100 border-brand-200'
+            }`}>
+            {maintenance ? 'Activar' : 'Mant.'}
+          </button>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function AdminPanel() {
   const [rooms, setRooms] = useState([])
   const [requests, setRequests] = useState([])
@@ -278,6 +365,7 @@ export default function AdminPanel() {
   const [tab, setTab] = useState('dashboard')
   const [checkInRoom, setCheckInRoom] = useState(null)
   const [checkOutRoom, setCheckOutRoom] = useState(null)
+  const [qrRoom, setQrRoom] = useState(null)
 
   const fetchData = async () => {
     setLoading(true)
@@ -496,108 +584,63 @@ export default function AdminPanel() {
                 <StatCard label="Ocupadas" value={stats.activeRooms} sub={`${stats.occupancy}% ocupación`} accent={stats.activeRooms > 0 ? 'bg-brand-50 border-brand-200' : ''} />
                 <StatCard label="Disponibles" value={stats.totalRooms - stats.activeRooms} sub="libres" />
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              <div className="space-y-2">
                 {rooms.map((room, i) => {
                   const occupied = !!room.token_sesion_actual
                   const dirty = room.estado_limpieza === 'sucia'
                   const maintenance = room.estado_limpieza === 'mantenimiento'
-                  const price = getRoomPrice(room)
                   return (
                     <motion.div
                       key={room.id}
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03, duration: 0.35 }}
-                      onClick={() => {
-                        if (occupied) {
-                          setCheckOutRoom(room)
-                        } else if (!dirty && !maintenance) {
-                          setCheckInRoom(room)
-                        }
-                      }}
-                      className={`relative rounded-2xl border p-4 transition-all duration-200 cursor-pointer select-none ${
+                      transition={{ delay: i * 0.02, duration: 0.3 }}
+                      className={`rounded-2xl border transition-all duration-200 ${
                         occupied
-                          ? 'bg-white border-brand-200 shadow-glass hover:shadow-md'
+                          ? 'bg-white border-brand-200 shadow-sm'
                           : dirty
-                            ? 'bg-amber-50/50 border-amber-200 hover:border-amber-300'
+                            ? 'bg-amber-50/40 border-amber-200'
                             : maintenance
-                              ? 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                              : 'bg-white border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)] hover:shadow-md hover:border-brand-200'
+                              ? 'bg-gray-50 border-gray-200'
+                              : 'bg-white border-surface-3 hover:border-brand-200'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-lg font-bold ${
-                          occupied ? 'text-brand-700' : dirty ? 'text-amber-600' : maintenance ? 'text-gray-400' : 'text-gray-700'
+                      <div className="px-4 py-3 flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base font-bold shrink-0 ${
+                          occupied ? 'bg-brand-50 text-brand-700 border border-brand-200' : 'bg-surface-2 text-gray-500 border border-surface-3'
                         }`}>
                           {room.numero}
-                        </span>
-                        {occupied && (
-                          <span className="text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                            Ocupada
-                          </span>
-                        )}
-                        {!occupied && dirty && (
-                          <span className="text-[10px] font-medium text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
-                            Por limpiar
-                          </span>
-                        )}
-                        {!occupied && maintenance && (
-                          <span className="text-[10px] font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
-                            Mantenimiento
-                          </span>
-                        )}
-                        {!occupied && !dirty && !maintenance && (
-                          <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                            Disponible
-                          </span>
-                        )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{room.nombre}</p>
+                            {occupied ? (
+                              <span className="text-[10px] font-medium text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">Ocupada</span>
+                            ) : dirty ? (
+                              <span className="text-[10px] font-medium text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">Por limpiar</span>
+                            ) : maintenance ? (
+                              <span className="text-[10px] font-medium text-gray-500 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">Mantenimiento</span>
+                            ) : (
+                              <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">Disponible</span>
+                            )}
+                          </div>
+                          {occupied && room.huesped_nombre && (
+                            <p className="text-xs text-blue-600 truncate mt-0.5">{room.huesped_nombre}</p>
+                          )}
+                          {occupied && room.check_out && (
+                            <p className="text-[10px] text-gray-400 mt-0.5">Salida: {new Date(room.check_out).toLocaleDateString()}</p>
+                          )}
+                        </div>
+                        <div className="shrink-0 min-w-[140px]">
+                          <RoomActions
+                            room={room}
+                            onCheckIn={(r) => setCheckInRoom(r)}
+                            onCheckOut={(r) => setCheckOutRoom(r)}
+                            onShowQR={(r) => setQrRoom(r)}
+                            onAction={() => fetchData()}
+                          />
+                        </div>
                       </div>
-
-                      <p className="text-xs text-gray-500 truncate mb-2">{room.tipo}</p>
-
-                      {occupied && room.huesped_nombre && (
-                        <p className="text-[10px] text-blue-600 truncate font-medium mb-2">{room.huesped_nombre}</p>
-                      )}
-
-                      {!occupied && (
-                        <div className="flex gap-1.5 mt-2 pt-2 border-t border-surface-2">
-                          {dirty && (
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation()
-                                await supabase.from('rooms').update({ estado_limpieza: 'limpia' }).eq('id', room.id)
-                                setRooms(prev => prev.map(r => r.id === room.id ? { ...r, estado_limpieza: 'limpia' } : r))
-                              }}
-                              className="flex-1 text-[10px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2 py-1 rounded-lg transition-all"
-                            >
-                              Limpiar
-                            </button>
-                          )}
-                          <button
-                            onClick={async (e) => {
-                              e.stopPropagation()
-                              const newStatus = maintenance ? 'limpia' : 'mantenimiento'
-                              await supabase.from('rooms').update({ estado_limpieza: newStatus }).eq('id', room.id)
-                              setRooms(prev => prev.map(r => r.id === room.id ? { ...r, estado_limpieza: newStatus } : r))
-                            }}
-                            className={`flex-1 text-[10px] font-medium border px-2 py-1 rounded-lg transition-all ${
-                              maintenance
-                                ? 'text-gray-600 bg-gray-50 hover:bg-gray-100 border-gray-200'
-                                : 'text-brand-600 bg-brand-50 hover:bg-brand-100 border-brand-200'
-                            }`}
-                          >
-                            {maintenance ? 'Activar' : 'Mantenim.'}
-                          </button>
-                        </div>
-                      )}
-
-                      {occupied && (
-                        <div className="text-[10px] text-gray-400 mt-1">
-                          {room.check_out && (
-                            <span>Salida: {new Date(room.check_out).toLocaleDateString()}</span>
-                          )}
-                        </div>
-                      )}
                     </motion.div>
                   )
                 })}
@@ -729,6 +772,12 @@ export default function AdminPanel() {
     <AnimatePresence>
       {checkOutRoom && (
         <CheckOutModal room={checkOutRoom} requests={requests} onClose={() => setCheckOutRoom(null)} onConfirm={handleCheckOut} />
+      )}
+    </AnimatePresence>
+
+    <AnimatePresence>
+      {qrRoom && (
+        <QRModal room={qrRoom} onClose={() => setQrRoom(null)} />
       )}
     </AnimatePresence>
   </>
