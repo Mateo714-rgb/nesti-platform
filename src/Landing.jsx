@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useScroll, useTransform } from 'framer-motion'
 import { useAuth } from './lib/AuthContext'
 
 const svgs = {
@@ -111,61 +111,72 @@ const svgs = {
       <path d="M16 12a6 6 0 0 1 6-6c4 0 6 4 6 4s2-4 6-4a6 6 0 0 1 6 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
       <path d="M12 30h24" stroke="currentColor" strokeWidth="1.5" opacity="0.3"/>
     </svg>
-  )
+  ),
+  arrow_right: (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
 }
 
-const PARTICLE_STYLES = Array.from({ length: 20 }, () => ({
-  width: Math.random() * 6 + 2 + 'px',
-  height: Math.random() * 6 + 2 + 'px',
-  left: Math.random() * 100 + '%',
-  top: Math.random() * 100 + '%',
-  background: `rgba(20, 116, 116, ${Math.random() * 0.15 + 0.03})`,
-  animation: `floatParticle ${Math.random() * 20 + 15}s ease-in-out infinite`,
-  animationDelay: Math.random() * 10 + 's',
-  opacity: Math.random() * 0.5 + 0.1,
-}))
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (delay = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay },
+  }),
+}
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: (delay = 0) => ({
+    opacity: 1,
+    transition: { duration: 0.6, delay },
+  }),
+}
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.92 },
+  visible: (delay = 0) => ({
+    opacity: 1,
+    scale: 1,
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1], delay },
+  }),
+}
+
+const STAGGER = 0.06
 
 function Particles() {
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {PARTICLE_STYLES.map((style, i) => (
-        <div
+      {Array.from({ length: 30 }, (_, i) => (
+        <motion.div
           key={i}
           className="absolute rounded-full"
-          style={style}
+          style={{
+            width: Math.random() * 8 + 2 + 'px',
+            height: Math.random() * 8 + 2 + 'px',
+            left: Math.random() * 100 + '%',
+            top: Math.random() * 100 + '%',
+            background: `radial-gradient(circle, rgba(20,116,116,${Math.random() * 0.2 + 0.04}), transparent)`,
+          }}
+          animate={{
+            y: [0, -40, 0, -20, 0],
+            x: [0, 20, -10, 10, 0],
+            opacity: [0.2, 0.6, 0.3, 0.5, 0.2],
+          }}
+          transition={{
+            duration: Math.random() * 20 + 20,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: Math.random() * 10,
+          }}
         />
       ))}
-      <style>{`
-        @keyframes floatParticle {
-          0%, 100% { transform: translateY(0) translateX(0); }
-          25% { transform: translateY(-30px) translateX(15px); }
-          50% { transform: translateY(-10px) translateX(-10px); }
-          75% { transform: translateY(-40px) translateX(20px); }
-        }
-      `}</style>
+      <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-brand-200/10 blur-[120px]" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-amber-200/10 blur-[100px]" />
     </div>
-  )
-}
-
-function FadeIn({ children, delay, className }) {
-  return (
-    <div
-      className={className}
-      style={{
-        animation: `fade-up 0.6s ease both`,
-        animationDelay: (delay || 0) + 's'
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-
-function Icon({ name, className }) {
-  return (
-    <span className={className}>
-      {svgs[name]}
-    </span>
   )
 }
 
@@ -185,29 +196,10 @@ function SmoothLink({ href, children, className }) {
   )
 }
 
-function BetaBanner() {
-  return (
-    <div className="relative z-10 bg-gradient-to-r from-brand-600 via-brand-500 to-brand-600 overflow-hidden">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-      <div className="relative max-w-6xl mx-auto px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-center">
-        <div className="flex items-center gap-2">
-          <Icon name="gift" className="w-5 h-5 text-white/90" />
-          <span className="text-sm sm:text-base font-semibold text-white">
-            Acceso Anticipado — Beta Cerrada
-          </span>
-        </div>
-        <span className="text-white/80 text-xs sm:text-sm leading-relaxed">
-          Registrate durante la beta y obten acceso <strong className="text-white">GRATIS de por vida</strong> para tu hotel.
-        </span>
-      </div>
-    </div>
-  )
-}
-
 function useActiveSection() {
   const [active, setActive] = useState('')
   useEffect(() => {
-    const ids = ['video', 'features', 'how-it-works']
+    const ids = ['features', 'how-it-works', 'testimonials']
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((e) => {
         if (e.isIntersecting) setActive(e.target.id)
@@ -222,66 +214,102 @@ function useActiveSection() {
   return active
 }
 
+function SectionHeading({ label, title, desc, light }) {
+  return (
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-60px' }}
+      className={`text-center mb-14 ${light ? 'text-white' : ''}`}
+    >
+      <span className={`inline-block text-xs font-semibold tracking-[0.2em] uppercase mb-4 px-4 py-1.5 rounded-full border ${
+        light ? 'text-white/80 border-white/20 bg-white/5' : 'text-brand-600 border-brand-200 bg-brand-50'
+      }`}>
+        {label}
+      </span>
+      <h2 className={`font-display text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight text-balance mb-4 ${
+        light ? 'text-white' : 'text-gray-900'
+      }`}>
+        {title}
+      </h2>
+      {desc && (
+        <p className={`text-base sm:text-lg max-w-2xl mx-auto text-balance ${
+          light ? 'text-white/60' : 'text-gray-500'
+        }`}>
+          {desc}
+        </p>
+      )}
+    </motion.div>
+  )
+}
+
+function GlassCard({ children, className, hover = true }) {
+  return (
+    <div className={`glass rounded-3xl ${hover ? 'hover:shadow-glass-lg hover:-translate-y-0.5' : ''} transition-all duration-500 ${className || ''}`}>
+      {children}
+    </div>
+  )
+}
+
+function Icon({ name, className }) {
+  return <span className={className}>{svgs[name]}</span>
+}
+
 const testimonials = [
   {
     initials: 'MR',
     hotel: 'Hotel Paraíso del Mar',
     flag: '🇲🇽',
     rating: 5,
-    quote: 'Nesti transformó la experiencia de nuestros huéspedes. Ahora todo lo solicitan desde el QR sin pasar por recepción.'
+    quote: 'Nesti transformó la experiencia de nuestros huéspedes. Ahora todo lo solicitan desde el QR sin pasar por recepción.',
   },
   {
     initials: 'CL',
     hotel: 'Lodge Bosque Nublado',
     flag: '🇨🇷',
     rating: 5,
-    quote: 'Implementarlo fue increíblemente fácil. En 30 minutos ya estábamos funcionando. Nuestros huéspedes aman la comodidad.'
+    quote: 'Implementarlo fue increíblemente fácil. En 30 minutos ya estábamos funcionando. Nuestros huéspedes aman la comodidad.',
   },
   {
     initials: 'AV',
     hotel: 'Hotel Boutique Central',
     flag: '🇪🇨',
     rating: 5,
-    quote: 'El panel de recepción en tiempo real nos permite gestionar el servicio mucho más rápido. Recomendado al 100%.'
-  }
-]
-
-const pricingFeatures = [
-  'Portal del huésped vía QR',
-  'Panel de recepción en tiempo real',
-  'Catálogo de servicios ilimitado',
-  'Analytics e informes de ocupación',
-  'Soporte técnico prioritario'
+    quote: 'El panel de recepción en tiempo real nos permite gestionar el servicio mucho más rápido. Recomendado al 100%.',
+  },
 ]
 
 export default function Landing() {
   const { user } = useAuth()
   const activeSection = useActiveSection()
+  const { scrollY } = useScroll()
+  const heroY = useTransform(scrollY, [0, 600], [0, 200])
+  const heroOpacity = useTransform(scrollY, [0, 500], [1, 0.3])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-surface-0 via-brand-50/30 to-surface-2 relative">
+    <div className="min-h-screen bg-gradient-to-b from-surface-0 via-brand-50/20 to-surface-2 relative">
       <Particles />
 
-      {/* Decorative gradient orb */}
-      <div className="fixed top-1/4 -left-48 w-[600px] h-[600px] rounded-full bg-brand-200/30 blur-[120px] pointer-events-none animate-pulse-soft" style={{ animationDuration: '8s' }} />
-
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-surface-0/80 backdrop-blur-xl border-b border-surface-3">
+      {/* ===== NAVIGATION ===== */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-surface-3/80">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center">
+          <a href="/" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
               <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white">
                 <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
                 <rect x="9" y="12" width="6" height="6" rx="1" fill="currentColor" opacity="0.7"/>
               </svg>
             </div>
-            <span className="font-display font-semibold text-lg text-gray-900">Nesti</span>
+            <span className="font-display font-semibold text-lg bg-gradient-to-r from-brand-700 to-brand-500 bg-clip-text text-transparent">
+              Nesti
+            </span>
           </a>
           <div className="hidden sm:flex items-center gap-8">
             {[
-              { href: '#video', label: 'Video' },
               { href: '#features', label: 'Funcionalidades' },
               { href: '#how-it-works', label: 'Cómo funciona' },
+              { href: '#testimonials', label: 'Testimonios' },
             ].map((l) => (
               <SmoothLink key={l.href} href={l.href}
                 className={`relative text-sm transition-colors ${
@@ -291,142 +319,268 @@ export default function Landing() {
                 }`}>
                 {l.label}
                 {activeSection === l.href.slice(1) && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand-600" />
+                  <motion.span layoutId="nav-dot" className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand-600" />
                 )}
               </SmoothLink>
             ))}
             <a href="/affiliate" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Afiliados</a>
             {user ? (
-              <a href="/admin" className="text-sm font-semibold text-brand-600 hover:text-brand-700 transition-colors">Panel</a>
+              <a href="/admin" className="text-sm font-semibold px-5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white hover:shadow-lg hover:shadow-brand-500/25 hover:-translate-y-0.5 transition-all">
+                Panel
+              </a>
             ) : (
-              <a href="/login" className="text-sm font-semibold bg-brand-600 text-white px-4 py-1.5 rounded-xl hover:bg-brand-700 transition-all">Acceder</a>
+              <a href="/login" className="text-sm font-semibold px-5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white hover:shadow-lg hover:shadow-brand-500/25 hover:-translate-y-0.5 transition-all">
+                Acceder
+              </a>
             )}
           </div>
         </div>
       </nav>
 
-      {/* Beta Banner */}
-      <BetaBanner />
+      {/* ===== HERO ===== */}
+      <section className="relative z-10 min-h-screen flex items-center overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-900/90 via-brand-800/85 to-gray-900/90 z-0" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(20,116,116,0.3),transparent_70%),radial-gradient(ellipse_at_bottom_left,_rgba(245,158,11,0.15),transparent_60%)] z-0" />
+        <div className="absolute inset-0 bg-[url('/images/hero-bg.png')] bg-cover bg-center opacity-20 z-0" />
+        <div className="absolute inset-0 backdrop-blur-[3px] z-0" />
 
-      {/* Hero — Premium */}
-      <section className="relative z-10 min-h-screen flex items-center px-6 overflow-hidden"
-        style={{ backgroundImage: 'url(/images/hero-bg.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[5px] z-0" />
-        <div className="relative z-10 max-w-6xl mx-auto w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-16 py-24">
-          <div className="flex-1 text-center lg:text-left max-w-lg">
-            <FadeIn delay={0.1}>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
-                <span className="text-xs font-medium text-white/90 tracking-wide">Guest Experience Platform</span>
-              </div>
-            </FadeIn>
-            <FadeIn delay={0.2}>
-              <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight text-balance mb-4">
-                La experiencia del huesped,<br />
-                <span style={{ color: '#0d7a70' }}>redefinida</span>
-              </h1>
-            </FadeIn>
-            <FadeIn delay={0.3}>
-              <p className="text-base sm:text-lg text-white/70 max-w-lg mx-auto lg:mx-0 leading-relaxed mb-8 text-balance">
-                Asistente digital inteligente para hoteles. Tus huespedes acceden a todos los servicios del hotel desde su habitacion con solo escanear un codigo QR.
-              </p>
-            </FadeIn>
-            <FadeIn delay={0.4}>
-              <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start">
+        {/* Floating decorative shapes */}
+        <motion.div
+          animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-20 left-10 w-32 h-32 rounded-full bg-brand-400/10 blur-[60px]"
+        />
+        <motion.div
+          animate={{ y: [0, 15, 0], rotate: [0, -3, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute bottom-32 right-16 w-48 h-48 rounded-full bg-amber-400/10 blur-[80px]"
+        />
+        <motion.div
+          animate={{ y: [0, -12, 0] }}
+          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-1/3 right-1/4 w-2 h-2 rounded-full bg-brand-300/40"
+        />
+        <motion.div
+          animate={{ y: [0, 18, 0] }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+          className="absolute bottom-1/3 left-1/4 w-1.5 h-1.5 rounded-full bg-amber-300/40"
+        />
+
+        <div className="relative z-10 max-w-6xl mx-auto w-full px-6 py-24">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+            <div className="flex-1 text-center lg:text-left max-w-xl" style={{ y: heroY, opacity: heroOpacity }}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
+                  <span className="text-xs font-medium text-white/90 tracking-wide">Guest Experience Platform</span>
+                </span>
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.2 }}
+                className="font-display text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.1] text-balance mb-6"
+              >
+                La experiencia del huésped,
+                <br />
+                <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-200 bg-clip-text text-transparent">
+                  redefinida
+                </span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.35 }}
+                className="text-base sm:text-lg text-white/60 max-w-lg mx-auto lg:mx-0 leading-relaxed mb-10 text-balance"
+              >
+                Asistente digital inteligente para hoteles. Tus huéspedes acceden a todos los servicios desde su habitación con solo escanear un código QR.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+                className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start"
+              >
                 {user ? (
                   <>
-                    <a href="/admin" className="px-6 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all shadow-lg" style={{ backgroundColor: '#0d7a70' }}>
+                    <a href="/admin" className="group px-8 py-3.5 rounded-2xl text-sm font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-xl shadow-brand-500/20 hover:shadow-brand-500/30 hover:-translate-y-0.5 flex items-center gap-2">
                       Ir al panel
+                      <Icon name="arrow_right" className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </a>
-                    <a href="/reception" className="px-6 py-3 rounded-xl text-sm font-medium text-white border border-white/30 hover:bg-white/10 transition-all">
-                      Recepcion
+                    <a href="/reception" className="px-8 py-3.5 rounded-2xl text-sm font-medium text-white/80 border border-white/20 hover:bg-white/10 hover:text-white transition-all backdrop-blur-sm">
+                      Recepción
                     </a>
                   </>
                 ) : (
                   <>
-                    <a href="/beta-register" className="px-6 py-3 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all shadow-lg hover:-translate-y-0.5 active:translate-y-0" style={{ backgroundColor: '#0d7a70' }}>
+                    <a href="/beta-register" className="group px-8 py-3.5 rounded-2xl text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 transition-all shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 hover:-translate-y-0.5 flex items-center gap-2">
                       Comenzar ahora
+                      <Icon name="arrow_right" className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </a>
-                    <SmoothLink href="#video" className="px-6 py-3 rounded-xl text-sm font-medium text-white border border-white/30 hover:bg-white/10 transition-all flex items-center gap-2">
+                    <SmoothLink href="#features" className="px-8 py-3.5 rounded-2xl text-sm font-medium text-white/80 border border-white/20 hover:bg-white/10 hover:text-white transition-all backdrop-blur-sm flex items-center gap-2">
                       <Icon name="play" className="w-4 h-4" />
-                      Ver video
+                      Ver más
                     </SmoothLink>
                   </>
                 )}
-              </div>
-            </FadeIn>
-          </div>
-          <div className="flex-1 max-w-sm lg:max-w-none flex justify-center">
+              </motion.div>
+            </div>
+
+            {/* Phone mockup */}
             <motion.div
-              animate={{ y: [-6, 6, -6] }}
-              transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity }}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="flex-1 max-w-sm lg:max-w-none flex justify-center"
             >
-              <div className="relative">
-                <div className="absolute inset-0 rounded-[32px] blur-[60px] scale-110" style={{ backgroundColor: 'rgba(13, 122, 112, 0.25)' }} />
-                <div className="relative bg-white/95 backdrop-blur-xl rounded-[24px] p-5 sm:p-6 shadow-float" style={{ width: 320 }}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#0d7a70' }}>
-                      <svg viewBox="0 0 24 24" fill="none" className="w-[18px] h-[18px] text-white">
-                        <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Habitacion 204</p>
-                      <p className="text-xs text-gray-400">Bienvenido, Maria</p>
-                    </div>
-                    <div className="ml-auto flex gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                      <span className="w-2 h-2 rounded-full bg-amber-300" />
-                      <span className="w-2 h-2 rounded-full bg-red-300" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5 mb-3">
-                    {['Limpieza', 'Room Service', 'Toallas', 'Desayuno'].map((item) => (
-                      <div key={item} className="rounded-xl px-3.5 py-2.5 text-center cursor-pointer" style={{ backgroundColor: '#f0fafa', border: '1px solid #d0f0f0' }}>
-                        <p className="text-xs font-medium" style={{ color: '#0d7a70' }}>{item}</p>
+              <motion.div
+                animate={{ y: [-8, 8, -8] }}
+                transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity }}
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-[32px] blur-[80px] scale-110 bg-gradient-to-b from-brand-400/30 via-brand-500/20 to-amber-400/20" />
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="relative bg-white/95 backdrop-blur-2xl rounded-[24px] p-6 sm:p-7 shadow-2xl border border-white/40"
+                    style={{ width: 320 }}
+                  >
+                    <div className="flex items-center gap-3 mb-5">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-md">
+                        <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white">
+                          <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
+                        </svg>
                       </div>
-                    ))}
-                  </div>
-                  <div className="rounded-xl p-3.5 flex items-center justify-between cursor-pointer text-white" style={{ backgroundColor: '#0d7a70' }}>
-                    <div>
-                      <p className="text-xs text-white/70">Solicitar ahora</p>
-                      <p className="text-sm font-semibold text-white">Asistencia en habitacion</p>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Habitación 204</p>
+                        <p className="text-xs text-gray-400">Bienvenida, María</p>
+                      </div>
+                      <div className="ml-auto flex gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm" />
+                        <span className="w-2 h-2 rounded-full bg-amber-300 shadow-sm" />
+                        <span className="w-2 h-2 rounded-full bg-red-300 shadow-sm" />
+                      </div>
                     </div>
-                    <Icon name="bell" className="text-white/80 w-7 h-7" />
-                  </div>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {[
+                        { label: 'Limpieza', icon: '🧹' },
+                        { label: 'Room Service', icon: '🍽️' },
+                        { label: 'Toallas', icon: '🧴' },
+                        { label: 'Desayuno', icon: '☕' },
+                      ].map((item) => (
+                        <motion.div
+                          key={item.label}
+                          whileHover={{ scale: 1.05, y: -2 }}
+                          className="rounded-xl px-3.5 py-3 text-center cursor-pointer bg-gradient-to-b from-brand-50 to-white border border-brand-100 hover:border-brand-200 hover:shadow-md transition-all"
+                        >
+                          <span className="text-sm mb-1 block">{item.icon}</span>
+                          <p className="text-[11px] font-medium text-brand-700">{item.label}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      className="rounded-xl p-4 flex items-center justify-between cursor-pointer bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-lg shadow-brand-500/20"
+                    >
+                      <div>
+                        <p className="text-xs text-white/70">Solicitar ahora</p>
+                        <p className="text-sm font-semibold text-white">Asistencia en habitación</p>
+                      </div>
+                      <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                        <Icon name="bell" className="text-white w-5 h-5" />
+                      </div>
+                    </motion.div>
+                  </motion.div>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
           </div>
         </div>
+
+        {/* Scroll indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        >
+          <span className="text-xs text-white/30 tracking-widest uppercase font-medium">Descubre</span>
+          <motion.div
+            animate={{ y: [0, 6, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="w-5 h-8 rounded-full border border-white/20 flex items-start justify-center pt-1.5"
+          >
+            <motion.div
+              animate={{ y: [0, 8, 0], opacity: [1, 0.3, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-1 h-1.5 rounded-full bg-white/40"
+            />
+          </motion.div>
+        </motion.div>
       </section>
 
-      {/* Testimonials */}
-      <section className="relative z-10 py-16 px-6">
+      {/* ===== STATS BAR ===== */}
+      <section className="relative z-10 -mt-16 mb-8 px-6">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="glass rounded-3xl p-6 sm:p-8 shadow-glass-lg border border-white/60 grid grid-cols-2 sm:grid-cols-4 gap-6"
+          >
+            {[
+              { value: '30 seg', label: 'en configurar tu hotel' },
+              { value: '100%', label: 'sin instalación para huéspedes' },
+              { value: '24/7', label: 'disponible cualquier dispositivo' },
+              { value: '0$', label: 'beta — gratis de por vida' },
+            ].map((s, i) => (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="text-center"
+              >
+                <p className="font-display text-2xl sm:text-3xl font-bold bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent mb-1">
+                  {s.value}
+                </p>
+                <p className="text-xs text-gray-500">{s.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== TESTIMONIALS ===== */}
+      <section id="testimonials" className="relative z-10 py-20 px-6">
         <div className="max-w-6xl mx-auto">
-          <FadeIn delay={0.1}>
-            <div className="text-center mb-10">
-              <p className="text-xs font-semibold text-brand-600 tracking-widest uppercase mb-3">Testimonios</p>
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 text-balance mb-3">
-                Lo que dicen nuestros primeros usuarios
-              </h2>
-              <p className="text-gray-500 max-w-lg mx-auto text-balance">
-                Hoteles que ya están usando Nesti durante la beta.
-              </p>
-            </div>
-          </FadeIn>
-          <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-none md:grid md:grid-cols-3">
+          <SectionHeading
+            label="Testimonios"
+            title="Lo que dicen nuestros primeros usuarios"
+            desc="Hoteles que ya están usando Nesti durante la beta."
+          />
+          <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, i) => (
               <motion.div
                 key={t.hotel}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
-                transition={{ delay: i * 0.1, duration: 0.4 }}
-                className="glass rounded-3xl p-6 min-w-[280px] snap-start hover:shadow-glass-lg transition-all duration-300"
+                custom={i * 0.12}
+                whileHover={{ y: -4, transition: { duration: 0.3 } }}
+                className="glass rounded-3xl p-7 hover:shadow-glass-lg transition-all duration-500 border border-white/60"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-sm font-semibold text-brand-700 shrink-0">
+                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center text-sm font-semibold text-brand-700 shrink-0 shadow-sm">
                     {t.initials}
                   </div>
                   <div className="min-w-0">
@@ -434,324 +588,342 @@ export default function Landing() {
                     <p className="text-xs text-gray-400">{t.flag}</p>
                   </div>
                 </div>
-                <div className="flex gap-0.5 mb-3">
+                <div className="flex gap-0.5 mb-4">
                   {Array.from({ length: t.rating }).map((_, s) => (
-                    <svg key={s} viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-amber-400">
+                    <motion.svg
+                      key={s}
+                      initial={{ opacity: 0, scale: 0 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.1 + s * 0.05 }}
+                      viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-amber-400"
+                    >
                       <path d="M10 1l2.39 4.84L17.6 6.7l-3.8 3.7.9 5.24L10 13.2l-4.7 2.44.9-5.24-3.8-3.7 5.21-.86L10 1z"/>
-                    </svg>
+                    </motion.svg>
                   ))}
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed">"{t.quote}"</p>
+                <p className="text-sm text-gray-600 leading-relaxed italic">"{t.quote}"</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Video Section */}
-      <section id="video" className="relative z-10 py-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <FadeIn delay={0.1}>
-            <div className="text-center mb-10">
-              <p className="text-xs font-semibold text-brand-600 tracking-widest uppercase mb-3">Video</p>
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 text-balance mb-3">
-                Mira como funciona Nesti
-              </h2>
-              <p className="text-gray-500 max-w-lg mx-auto text-balance">
-                Un recorrido completo por la plataforma: desde la llegada del huesped hasta la gestion en recepcion.
-              </p>
-            </div>
-          </FadeIn>
-          <FadeIn delay={0.2}>
-            <div className="relative group">
-              <div className="absolute inset-0 bg-brand-200/30 rounded-4xl blur-2xl transition-all duration-500 group-hover:scale-105" />
-              <div className="relative glass rounded-3xl p-2 sm:p-3 shadow-glass-lg overflow-hidden">
-                <div className="aspect-video rounded-2xl overflow-hidden bg-gray-900">
-                  <iframe
-                    src="https://www.youtube.com/embed/d1UM0bwigLI?rel=0"
-                    title="Nesti - Guest Experience Platform"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
-                  />
-                </div>
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* Beta CTA */}
-      <section className="relative z-10 -mt-4 pb-8 px-6">
-        <div className="max-w-3xl mx-auto">
-          <FadeIn delay={0.1}>
-            <div className="glass rounded-4xl p-8 sm:p-10 shadow-glass-lg border border-brand-100 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-amber-200/30 rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-100/40 rounded-full blur-3xl" />
-              <div className="relative flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-                <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
-                  <Icon name="gift" className="w-8 h-8 text-amber-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-display font-semibold text-lg text-gray-900 mb-1">
-                    Acceso gratuito de por vida
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed text-balance">
-                    Todos los que se registren durante la beta cerrada obtendran una licencia <strong className="text-brand-600">gratuita de por vida</strong> para su hotel. Sin cargos, sin sorpresas.
-                  </p>
-                </div>
-                {!user && (
-                  <a href="/beta-register" className="shrink-0 px-6 py-3 rounded-2xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5">
-                    Reclamar acceso
-                  </a>
-                )}
-              </div>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* Features */}
+      {/* ===== FEATURES ===== */}
       <section id="features" className="relative z-10 py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <FadeIn delay={0.1}>
-            <div className="text-center mb-14">
-              <p className="text-xs font-semibold text-brand-600 tracking-widest uppercase mb-3">Funcionalidades</p>
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 text-balance mb-3">
-                Todo lo que tu hotel necesita
-              </h2>
-              <p className="text-gray-500 max-w-lg mx-auto text-balance">
-                Una plataforma completa para gestionar la experiencia de tus huespedes desde el check-in hasta el check-out.
-              </p>
-            </div>
-          </FadeIn>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-50/30 to-transparent pointer-events-none" />
+        <div className="max-w-6xl mx-auto relative">
+          <SectionHeading
+            label="Funcionalidades"
+            title="Todo lo que tu hotel necesita"
+            desc="Una plataforma completa para gestionar la experiencia de tus huéspedes desde el check-in hasta el check-out."
+          />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                icon: 'hotel',
-                title: 'Portal del huesped',
-                desc: 'Cada habitacion tiene su propio portal accesible via QR. Los huespedes solicitan servicios al instante.'
+                icon: 'hotel', title: 'Portal del huésped',
+                desc: 'Cada habitación tiene su propio portal accesible vía QR. Los huéspedes solicitan servicios al instante.',
+                gradient: 'from-brand-50 to-brand-100/50',
               },
               {
-                icon: 'reception',
-                title: 'Panel de recepcion',
-                desc: 'Gestiona solicitudes en tiempo real. Asigna personal, actualiza estados y recibe notificaciones al instante.'
+                icon: 'reception', title: 'Panel de recepción',
+                desc: 'Gestiona solicitudes en tiempo real. Asigna personal, actualiza estados y recibe notificaciones al instante.',
+                gradient: 'from-brand-50 to-brand-100/50',
               },
               {
-                icon: 'analytics',
-                title: 'Analytics e informes',
-                desc: 'Visualiza metricas clave, servicios mas solicitados, horas pico y tendencias de ocupacion.'
+                icon: 'analytics', title: 'Analytics e informes',
+                desc: 'Visualiza métricas clave, servicios más solicitados, horas pico y tendencias de ocupación.',
+                gradient: 'from-amber-50 to-amber-100/50',
               },
               {
-                icon: 'service',
-                title: 'Catalogo de servicios',
-                desc: 'Configura servicios ilimitados por categoria: limpieza, alimentos, logistica y mas.'
+                icon: 'service', title: 'Catálogo de servicios',
+                desc: 'Configura servicios ilimitados por categoría: limpieza, alimentos, logística y más.',
+                gradient: 'from-brand-50 to-brand-100/50',
               },
               {
-                icon: 'qr',
-                title: 'Codigos QR unicos',
-                desc: 'Genera codigos QR personalizados para cada habitacion. Listos para imprimir y colocar.'
+                icon: 'qr', title: 'Códigos QR únicos',
+                desc: 'Genera códigos QR personalizados para cada habitación. Listos para imprimir y colocar.',
+                gradient: 'from-brand-50 to-brand-100/50',
               },
               {
-                icon: 'smartphone',
-                title: 'Sin instalacion',
-                desc: 'Experiencia mobile-first que funciona desde el navegador. Sin descargas ni configuraciones.'
-              }
+                icon: 'smartphone', title: 'Sin instalación',
+                desc: 'Experiencia mobile-first que funciona desde el navegador. Sin descargas ni configuraciones.',
+                gradient: 'from-amber-50 to-amber-100/50',
+              },
             ].map((f, i) => (
-              <FadeIn key={f.title} delay={0.1 + i * 0.05}>
-                <div className="glass rounded-3xl p-6 hover:shadow-glass-lg transition-all duration-300 group hover:-translate-y-0.5">
-                  <Icon name={f.icon} className="w-10 h-10 text-brand-500 block mb-4 group-hover:text-brand-600 transition-colors group-hover:scale-110 transition-transform" />
-                  <h3 className="font-display font-semibold text-gray-900 mb-1.5">{f.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+              <motion.div
+                key={f.title}
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-40px' }}
+                custom={i * STAGGER}
+                whileHover={{ y: -6, transition: { duration: 0.3 } }}
+                className={`glass rounded-3xl p-7 hover:shadow-glass-lg transition-all duration-500 border border-white/60 bg-gradient-to-br ${f.gradient}`}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-100 to-brand-50 border border-brand-200/50 flex items-center justify-center mb-5 shadow-sm">
+                  <Icon name={f.icon} className="w-6 h-6 text-brand-600" />
                 </div>
-              </FadeIn>
+                <h3 className="font-display text-lg font-semibold text-gray-900 mb-2">{f.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
+      {/* ===== HOW IT WORKS ===== */}
       <section id="how-it-works" className="relative z-10 py-20 px-6">
         <div className="max-w-6xl mx-auto">
-          <FadeIn delay={0.1}>
-            <div className="text-center mb-14">
-              <p className="text-xs font-semibold text-brand-600 tracking-widest uppercase mb-3">Como funciona</p>
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 text-balance mb-3">
-                De cero a funcionando en minutos
-              </h2>
-              <p className="text-gray-500 max-w-lg mx-auto text-balance">
-                Configura tu hotel, imprime los QR codes, y tus huespedes empiezan a disfrutar al instante.
-              </p>
-            </div>
-          </FadeIn>
-          <div className="grid sm:grid-cols-3 gap-8 relative">
-            <div className="hidden sm:block absolute top-12 left-[16.67%] right-[16.67%] h-0.5 bg-gradient-to-r from-brand-200 via-brand-400 to-brand-200" />
+          <SectionHeading
+            label="Cómo funciona"
+            title="De cero a funcionando en minutos"
+            desc="Configura tu hotel, imprime los QR codes, y tus huéspedes empiezan a disfrutar al instante."
+          />
+          <div className="grid sm:grid-cols-3 gap-10 relative">
+            <div className="hidden sm:block absolute top-16 left-[16.67%] right-[16.67%] h-px bg-gradient-to-r from-transparent via-brand-300 to-transparent" />
             {[
-              { step: '01', icon: 'sparkle', title: 'Configura tu hotel', desc: 'Anade habitaciones, personaliza servicios, y define la informacion de tu hotel en el panel de administracion.' },
-              { step: '02', icon: 'qr', title: 'Genera los QR codes', desc: 'Imprime los codigos QR unicos para cada habitacion y colocarlos en lugares visibles.' },
-              { step: '03', icon: 'check', title: 'Tus huespedes disfrutan', desc: 'Al escanear el QR acceden al portal de servicios. Solicitudes en tiempo real, sin friccion.' }
+              { step: '01', icon: 'sparkle', title: 'Configura tu hotel', desc: 'Añade habitaciones, personaliza servicios, y define la información de tu hotel en el panel de administración.' },
+              { step: '02', icon: 'qr', title: 'Genera los QR codes', desc: 'Imprime los códigos QR únicos para cada habitación y colócalos en lugares visibles.' },
+              { step: '03', icon: 'check', title: 'Tus huéspedes disfrutan', desc: 'Al escanear el QR acceden al portal de servicios. Solicitudes en tiempo real, sin fricción.' },
             ].map((s, i) => (
-              <FadeIn key={s.step} delay={0.2 + i * 0.1}>
-                <div className="text-center relative group">
-                  <div className="w-16 h-16 rounded-2xl bg-brand-50 border border-brand-100 flex items-center justify-center mx-auto mb-5 relative z-10 group-hover:bg-brand-100 group-hover:border-brand-200 transition-all group-hover:scale-110 duration-300">
-                    <Icon name={s.icon} className="w-8 h-8 text-brand-500" />
-                  </div>
-                  <p className="text-xs font-mono font-semibold text-brand-400 mb-2">{s.step}</p>
-                  <h3 className="font-display font-semibold text-gray-900 mb-1.5">{s.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">{s.desc}</p>
-                </div>
-              </FadeIn>
+              <motion.div
+                key={s.step}
+                variants={scaleIn}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-40px' }}
+                custom={i * 0.15}
+                className="text-center relative group"
+              >
+                <motion.div
+                  whileHover={{ scale: 1.12, rotate: -5 }}
+                  className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center mx-auto mb-6 relative z-10 shadow-lg shadow-brand-500/20 group-hover:shadow-brand-500/30 transition-all duration-300"
+                >
+                  <Icon name={s.icon} className="w-9 h-9 text-white" />
+                </motion.div>
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-20 rounded-2xl bg-brand-400/20 blur-xl group-hover:blur-2xl transition-all" />
+                <p className="text-sm font-mono font-bold text-brand-400 mb-3">{s.step}</p>
+                <h3 className="font-display text-xl font-semibold text-gray-900 mb-2">{s.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed max-w-xs mx-auto">{s.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Stats */}
+      {/* ===== BETA CTA ===== */}
       <section className="relative z-10 py-16 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid sm:grid-cols-4 gap-5">
-            {[
-              { value: '30 seg', label: 'en configurar tu hotel', icon: 'sparkle' },
-              { value: '100%', label: 'sin instalacion para huespedes', icon: 'smartphone' },
-              { value: '24/7', label: 'disponible desde cualquier dispositivo', icon: 'bell' },
-              { value: '0$', label: 'durante la beta. Gratis de por vida', icon: 'gift' }
-            ].map((s, i) => (
-              <FadeIn key={s.label} delay={0.1 + i * 0.08}>
-                <div className="glass rounded-3xl p-5 text-center hover:shadow-glass-lg transition-all duration-300 hover:-translate-y-0.5">
-                  <p className="font-display text-2xl sm:text-3xl font-bold text-brand-600 mb-1">{s.value}</p>
-                  <p className="text-xs text-gray-500">{s.label}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Affiliates */}
-      <section className="relative z-10 py-16 px-6">
-        <div className="max-w-5xl mx-auto">
-          <FadeIn delay={0.1}>
-            <div className="text-center mb-10">
-              <p className="text-xs font-semibold text-brand-600 tracking-widest uppercase mb-3">Afiliados</p>
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 text-balance mb-3">
-                Gana mientras ayudas a hoteles
-              </h2>
-              <p className="text-gray-500 max-w-lg mx-auto text-balance">
-                Refiere hoteles a Nesti y recibe el 30% recurrente de cada pago mensual. Sin límites, sin topes.
-              </p>
-            </div>
-          </FadeIn>
-          <div className="grid sm:grid-cols-3 gap-5 mb-8">
-            {[
-              { icon: 'sparkle', value: '30%', label: 'comisión recurrente' },
-              { icon: 'star', value: '$14.70', label: 'por hotel activo / mes' },
-              { icon: 'gift', value: 'De por vida', label: 'mientras el hotel pague' },
-            ].map((s, i) => (
-              <FadeIn key={s.label} delay={0.1 + i * 0.05}>
-                <div className="glass rounded-3xl p-6 text-center hover:shadow-glass-lg transition-all duration-300 hover:-translate-y-0.5">
-                  <Icon name={s.icon} className="w-8 h-8 text-brand-400 block mx-auto mb-3" />
-                  <p className="font-display text-xl sm:text-2xl font-bold text-brand-600 mb-0.5">{s.value}</p>
-                  <p className="text-xs text-gray-500">{s.label}</p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-          <FadeIn delay={0.3}>
-            <div className="text-center">
-              <a href="/affiliate"
-                className="inline-flex px-6 py-3 rounded-2xl text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 hover:-translate-y-0.5">
-                Quiero ser afiliado
-              </a>
-            </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section className="relative z-10 py-16 px-6">
-        <div className="max-w-md mx-auto">
-          <FadeIn delay={0.1}>
-            <div className="text-center mb-8">
-              <p className="text-xs font-semibold text-brand-600 tracking-widest uppercase mb-3">Precios</p>
-              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 text-balance mb-3">
-                Sin costo durante la beta
-              </h2>
-            </div>
-          </FadeIn>
-          <FadeIn delay={0.2}>
-            <div className="glass rounded-4xl p-8 sm:p-10 shadow-float border border-brand-100 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-brand-100/40 rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-100/20 rounded-full blur-3xl" />
-              <div className="relative text-center">
-                <p className="text-lg text-gray-400 line-through font-medium mb-1">$49 / mes</p>
-                <p className="font-display text-5xl font-bold text-brand-600 mb-2">GRATIS</p>
-                <p className="text-sm text-gray-500 mb-6">durante la beta — licencia de por vida incluida</p>
-                <ul className="text-left space-y-3 mb-8">
-                  {pricingFeatures.map((f) => (
-                    <li key={f} className="flex items-center gap-3 text-sm text-gray-700">
-                      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-brand-500 shrink-0">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                        <path d="M8 12l3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                {!user && (
-                  <a href="/beta-register"
-                    className="inline-flex w-full justify-center px-8 py-3.5 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 hover:-translate-y-0.5">
-                    Reclamar acceso gratuito
-                  </a>
-                )}
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            variants={scaleIn}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            className="glass rounded-4xl p-8 sm:p-10 shadow-glass-lg border border-amber-100/80 relative overflow-hidden bg-gradient-to-br from-white to-amber-50/30"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-200/20 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-100/20 rounded-full blur-3xl" />
+            <div className="relative flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 border border-amber-200 flex items-center justify-center shrink-0 shadow-sm">
+                <Icon name="gift" className="w-8 h-8 text-amber-600" />
               </div>
+              <div className="flex-1">
+                <h3 className="font-display font-semibold text-xl text-gray-900 mb-1">
+                  Acceso gratuito de por vida
+                </h3>
+                <p className="text-sm text-gray-500 leading-relaxed text-balance">
+                  Todos los que se registren durante la beta cerrada obtendrán una licencia <strong className="text-brand-600">gratuita de por vida</strong> para su hotel. Sin cargos, sin sorpresas.
+                </p>
+              </div>
+              {!user && (
+                <motion.a
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  href="/beta-register"
+                  className="shrink-0 px-7 py-3 rounded-2xl text-sm font-semibold bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 transition-all shadow-lg shadow-amber-500/20"
+                >
+                  Reclamar acceso
+                </motion.a>
+              )}
             </div>
-          </FadeIn>
+          </motion.div>
         </div>
       </section>
 
-      {/* CTA */}
+      {/* ===== PRICING ===== */}
       <section className="relative z-10 py-20 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <FadeIn delay={0.1}>
-            <div className="glass rounded-4xl p-10 sm:p-14 shadow-float relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-brand-100/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-100/30 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-              <div className="relative">
-                <Icon name="sparkle" className="w-12 h-12 text-brand-400 block mx-auto mb-5" />
-                <h2 className="font-display text-2xl sm:text-3xl font-semibold text-gray-900 mb-3 text-balance">
-                  Listo para transformar la experiencia de tus huespedes?
-                </h2>
-                <p className="text-gray-500 mb-4 max-w-md mx-auto text-balance">
-                  Configura tu hotel en minutos y ofrece un servicio digital moderno y eficiente.
-                </p>
-                <p className="text-xs text-amber-600 font-semibold mb-8">
-                  Recuerda: durante la beta el acceso es gratuito de por vida.
-                </p>
-                {user ? (
-                  <a href="/admin" className="inline-flex px-8 py-3.5 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 hover:-translate-y-0.5">
-                    Ir al panel de administracion
-                  </a>
-                ) : (
-                  <a href="/beta-register" className="inline-flex px-8 py-3.5 rounded-2xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-all shadow-lg shadow-brand-600/20 hover:-translate-y-0.5">
-                    Comenzar ahora
-                  </a>
-                )}
-              </div>
+        <div className="max-w-md mx-auto">
+          <SectionHeading
+            label="Precios"
+            title="Sin costo durante la beta"
+          />
+          <motion.div
+            variants={scaleIn}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            className="glass rounded-4xl p-8 sm:p-10 shadow-float border border-brand-100/80 relative overflow-hidden bg-gradient-to-br from-white to-brand-50/30"
+          >
+            <div className="absolute top-0 right-0 w-48 h-48 bg-brand-100/30 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-100/20 rounded-full blur-3xl" />
+            <div className="relative text-center">
+              <p className="text-lg text-gray-400 line-through font-medium mb-1">$49 / mes</p>
+              <p className="font-display text-5xl sm:text-6xl font-bold bg-gradient-to-r from-brand-600 to-brand-400 bg-clip-text text-transparent mb-2">GRATIS</p>
+              <p className="text-sm text-gray-500 mb-8">durante la beta — licencia de por vida incluida</p>
+              <ul className="text-left space-y-4 mb-10 max-w-xs mx-auto">
+                {[
+                  'Portal del huésped vía QR',
+                  'Panel de recepción en tiempo real',
+                  'Catálogo de servicios ilimitado',
+                  'Analytics e informes de ocupación',
+                  'Soporte técnico prioritario',
+                ].map((f) => (
+                  <motion.li
+                    key={f}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    className="flex items-center gap-3 text-sm text-gray-700"
+                  >
+                    <span className="w-6 h-6 rounded-full bg-gradient-to-br from-brand-100 to-brand-50 flex items-center justify-center shrink-0">
+                      <svg viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3 text-brand-600">
+                        <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/>
+                      </svg>
+                    </span>
+                    {f}
+                  </motion.li>
+                ))}
+              </ul>
+              {!user && (
+                <motion.a
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  href="/beta-register"
+                  className="inline-flex w-full justify-center px-8 py-3.5 rounded-2xl text-sm font-semibold bg-gradient-to-r from-brand-600 to-brand-500 text-white hover:from-brand-700 hover:to-brand-600 transition-all shadow-lg shadow-brand-600/20"
+                >
+                  Reclamar acceso gratuito
+                </motion.a>
+              )}
             </div>
-          </FadeIn>
+          </motion.div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 border-t border-surface-3 py-10 px-6">
+      {/* ===== AFFILIATES ===== */}
+      <section className="relative z-10 py-20 px-6">
+        <div className="max-w-5xl mx-auto">
+          <SectionHeading
+            label="Afiliados"
+            title="Gana mientras ayudas a hoteles"
+            desc="Refiere hoteles a Nesti y recibe el 30% recurrente de cada pago mensual. Sin límites, sin topes."
+          />
+          <div className="grid sm:grid-cols-3 gap-6 mb-10">
+            {[
+              { icon: 'sparkle', value: '30%', label: 'comisión recurrente', gradient: 'from-brand-50 to-brand-100/50' },
+              { icon: 'star', value: '$14.70', label: 'por hotel activo / mes', gradient: 'from-amber-50 to-amber-100/50' },
+              { icon: 'gift', value: 'De por vida', label: 'mientras el hotel pague', gradient: 'from-emerald-50 to-emerald-100/50' },
+            ].map((s, i) => (
+              <motion.div
+                key={s.label}
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-40px' }}
+                custom={i * 0.1}
+                whileHover={{ y: -4 }}
+                className={`glass rounded-3xl p-7 text-center hover:shadow-glass-lg transition-all duration-500 border border-white/60 bg-gradient-to-br ${s.gradient}`}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-100 to-brand-50 border border-brand-200/50 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                  <Icon name={s.icon} className="w-6 h-6 text-brand-600" />
+                </div>
+                <p className="font-display text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{s.value}</p>
+                <p className="text-sm text-gray-500">{s.label}</p>
+              </motion.div>
+            ))}
+          </div>
+          <motion.div
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="text-center"
+          >
+            <motion.a
+              whileHover={{ scale: 1.03, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              href="/affiliate"
+              className="inline-flex px-8 py-3.5 rounded-2xl text-sm font-semibold bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 transition-all shadow-lg shadow-amber-500/20"
+            >
+              Quiero ser afiliado
+            </motion.a>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== FINAL CTA ===== */}
+      <section className="relative z-10 py-24 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <motion.div
+            variants={scaleIn}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-40px' }}
+            className="glass rounded-4xl p-10 sm:p-14 shadow-float relative overflow-hidden border border-white/60"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-brand-50/50 via-white to-amber-50/30" />
+            <div className="absolute top-0 right-0 w-72 h-72 bg-brand-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-72 h-72 bg-amber-100/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+            <div className="relative">
+              <motion.div
+                animate={{ rotate: [0, 10, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <Icon name="sparkle" className="w-14 h-14 text-brand-400 block mx-auto mb-6" />
+              </motion.div>
+              <h2 className="font-display text-3xl sm:text-4xl font-semibold text-gray-900 mb-4 text-balance">
+                ¿Listo para transformar la experiencia de tus huéspedes?
+              </h2>
+              <p className="text-gray-500 mb-4 max-w-lg mx-auto text-balance text-lg">
+                Configura tu hotel en minutos y ofrece un servicio digital moderno y eficiente.
+              </p>
+              <p className="text-sm text-amber-600 font-semibold mb-10">
+                Recuerda: durante la beta el acceso es gratuito de por vida.
+              </p>
+              {user ? (
+                <motion.a
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  href="/admin"
+                  className="inline-flex px-10 py-4 rounded-2xl text-sm font-semibold bg-gradient-to-r from-brand-600 to-brand-500 text-white hover:from-brand-700 hover:to-brand-600 transition-all shadow-xl shadow-brand-500/20"
+                >
+                  Ir al panel de administración
+                </motion.a>
+              ) : (
+                <motion.a
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  href="/beta-register"
+                  className="inline-flex px-10 py-4 rounded-2xl text-sm font-semibold bg-gradient-to-r from-brand-600 to-brand-500 text-white hover:from-brand-700 hover:to-brand-600 transition-all shadow-xl shadow-brand-500/20"
+                >
+                  Comenzar ahora
+                </motion.a>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ===== FOOTER ===== */}
+      <footer className="relative z-10 border-t border-surface-3/80 bg-white/50 backdrop-blur-sm py-10 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="none" className="w-3.5 h-3.5 text-white">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-sm">
+              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white">
                 <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
               </svg>
             </div>
-            <span className="font-display text-sm font-semibold text-gray-700">Nesti</span>
+            <span className="font-display text-sm font-semibold bg-gradient-to-r from-brand-700 to-brand-500 bg-clip-text text-transparent">Nesti</span>
           </div>
           <p className="text-xs text-gray-400 text-center">
             2026 Nesti — Guest Experience Platform. Todos los derechos reservados.
