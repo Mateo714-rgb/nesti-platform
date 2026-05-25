@@ -180,6 +180,18 @@ DO $$ DECLARE rec RECORD; BEGIN
   END LOOP;
 END $$;
 
+-- 3a. Función helper SECURITY DEFINER para evitar recursión infinita en RLS
+CREATE OR REPLACE FUNCTION public.is_owner()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner'
+  );
+$$;
+
 -- 3b. Habilitar RLS en todas las tablas
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE solicitudes_servicio ENABLE ROW LEVEL SECURITY;
@@ -212,17 +224,17 @@ CREATE POLICY "Servicios visibles para todos" ON servicios FOR SELECT TO anon, a
 
 -- STAFF
 CREATE POLICY "Staff visible para autenticado" ON staff FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Staff editable por owner" ON staff FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner'));
-CREATE POLICY "Staff actualizable por owner" ON staff FOR UPDATE TO authenticated USING (EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner'));
+CREATE POLICY "Staff editable por owner" ON staff FOR INSERT TO authenticated WITH CHECK (public.is_owner());
+CREATE POLICY "Staff actualizable por owner" ON staff FOR UPDATE TO authenticated USING (public.is_owner());
 
 -- HOTEL_CONFIG
 CREATE POLICY "Config visible para todos" ON hotel_config FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "Config editable por staff" ON hotel_config FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
 
 -- PERFILES
-CREATE POLICY "Perfiles visibles para owners" ON perfiles FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner') OR user_id = auth.uid());
-CREATE POLICY "Perfiles editables por owners" ON perfiles FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner'));
-CREATE POLICY "Perfiles actualizables por owners" ON perfiles FOR UPDATE TO authenticated USING (EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')) WITH CHECK (EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner'));
+CREATE POLICY "Perfiles visibles para owners" ON perfiles FOR SELECT TO authenticated USING (public.is_owner() OR user_id = auth.uid());
+CREATE POLICY "Perfiles editables por owners" ON perfiles FOR INSERT TO authenticated WITH CHECK (public.is_owner());
+CREATE POLICY "Perfiles actualizables por owners" ON perfiles FOR UPDATE TO authenticated USING (public.is_owner()) WITH CHECK (public.is_owner());
 
 -- NOTIFICACIONES_HABITACION
 CREATE POLICY "Notificaciones visibles para el huésped de la habitación" ON notificaciones_habitacion FOR SELECT TO anon USING (room_id IN (SELECT id FROM rooms WHERE token_sesion_actual IS NOT NULL));
@@ -237,15 +249,15 @@ CREATE POLICY "Chat insertable por staff autenticado" ON chat_mensajes FOR INSER
 
 -- BETA_REGISTRATIONS
 CREATE POLICY "Beta registrations insertables por cualquiera" ON beta_registrations FOR INSERT TO anon, authenticated WITH CHECK (true);
-CREATE POLICY "Beta registrations visibles solo para owner" ON beta_registrations FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner'));
+CREATE POLICY "Beta registrations visibles solo para owner" ON beta_registrations FOR SELECT TO authenticated USING (public.is_owner());
 
 -- AFFILIATES
 CREATE POLICY "Affiliates insertables por cualquiera" ON affiliates FOR INSERT TO anon, authenticated WITH CHECK (true);
-CREATE POLICY "Affiliates visibles para el propio usuario o owner" ON affiliates FOR SELECT TO authenticated USING (user_id = auth.uid() OR EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner'));
+CREATE POLICY "Affiliates visibles para el propio usuario o owner" ON affiliates FOR SELECT TO authenticated USING (user_id = auth.uid() OR public.is_owner());
 
 -- REFERRALS
 CREATE POLICY "Referrals insertables por cualquiera" ON referrals FOR INSERT TO anon, authenticated WITH CHECK (true);
-CREATE POLICY "Referrals visibles para owner o afiliado relacionado" ON referrals FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner') OR affiliate_id IN (SELECT id FROM affiliates WHERE user_id = auth.uid()));
+CREATE POLICY "Referrals visibles para owner o afiliado relacionado" ON referrals FOR SELECT TO authenticated USING (public.is_owner() OR affiliate_id IN (SELECT id FROM affiliates WHERE user_id = auth.uid()));
 
 -- NOVEDADES
 CREATE POLICY "Novedades insertable por admin autenticado" ON novedades FOR INSERT TO authenticated WITH CHECK (true);

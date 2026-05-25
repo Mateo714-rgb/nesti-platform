@@ -203,26 +203,38 @@ CREATE TABLE IF NOT EXISTS perfiles (
 
 ALTER TABLE perfiles ENABLE ROW LEVEL SECURITY;
 
+-- Función helper SECURITY DEFINER para evitar recursión infinita en RLS
+CREATE OR REPLACE FUNCTION public.is_owner()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner'
+  );
+$$;
+
 CREATE POLICY "Perfiles visibles para owners"
   ON perfiles FOR SELECT TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+    public.is_owner()
     OR user_id = auth.uid()
   );
 
 CREATE POLICY "Perfiles editables por owners"
   ON perfiles FOR INSERT TO authenticated
   WITH CHECK (
-    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+    public.is_owner()
   );
 
 CREATE POLICY "Perfiles actualizables por owners"
   ON perfiles FOR UPDATE TO authenticated
   USING (
-    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+    public.is_owner()
   )
   WITH CHECK (
-    EXISTS (SELECT 1 FROM perfiles WHERE user_id = auth.uid() AND rol = 'owner')
+    public.is_owner()
   );
 
 -- 16. NOTIFICACIONES DE HABITACIÓN
