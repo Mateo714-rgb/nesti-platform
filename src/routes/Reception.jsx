@@ -2,8 +2,10 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import { useRealtimeRequests } from '../hooks/useRealtimeRequests'
+import { useHotelConfig } from '../hooks/useHotelConfig'
 import Toast, { useNotificationSound } from '../components/Toast'
 import StaffAssigner from '../components/StaffAssigner'
+import ChatPanel from '../components/ChatPanel'
 import { getRoomPrice, getServicePrice, formatPrice } from '../data/prices'
 
 const STATUS = {
@@ -29,8 +31,6 @@ const STATUS = {
     dot: 'bg-gray-300',
   },
 }
-
-const FILTERS = ['todas', 'pendiente', 'aceptado', 'completado']
 
 function StatCard({ label, value, sub, accent }) {
   return (
@@ -318,15 +318,95 @@ function CheckOutModal({ room, requests, onClose, onConfirm }) {
   )
 }
 
+function SendNotificationModal({ room, onClose, onSend }) {
+  const [form, setForm] = useState({ titulo: 'Mensaje de recepción', mensaje: '' })
+  const [saving, setSaving] = useState(false)
+
+  const handleSend = async () => {
+    if (!form.mensaje.trim()) return
+    setSaving(true)
+    await onSend(room.id, form.titulo, form.mensaje)
+    setSaving(false)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+    >
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="relative bg-white rounded-3xl w-full max-w-md mx-4 p-6 shadow-2xl"
+      >
+        <div className="mb-5">
+          <p className="text-xs text-gray-400 uppercase tracking-widest font-medium">Notificación</p>
+          <h2 className="font-display text-xl font-semibold text-gray-900 mt-0.5">
+            Enviar mensaje a Hab. {room.numero}
+          </h2>
+        </div>
+
+        <div className="space-y-3 mb-5">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Título</label>
+            <input
+              value={form.titulo}
+              onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
+              className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Mensaje *</label>
+            <textarea
+              value={form.mensaje}
+              onChange={e => setForm(p => ({ ...p, mensaje: e.target.value }))}
+              rows={3}
+              placeholder="Escribe el mensaje para el huésped..."
+              className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all resize-none"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-500 bg-surface-2 hover:bg-surface-3 transition-all">
+            Cancelar
+          </button>
+          <button onClick={handleSend} disabled={saving || !form.mensaje.trim()}
+            className="flex-[2] py-2.5 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm disabled:opacity-50">
+            {saving ? 'Enviando...' : 'Enviar notificación'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 export default function Reception() {
   const { requests, loading: reqsLoading } = useRealtimeRequests()
-  const [filter, setFilter] = useState('todas')
   const [selected, setSelected] = useState(null)
   const [tab, setTab] = useState('rooms')
   const [rooms, setRooms] = useState([])
   const [loadingRooms, setLoadingRooms] = useState(true)
   const [checkInRoom, setCheckInRoom] = useState(null)
   const [checkOutRoom, setCheckOutRoom] = useState(null)
+  const { config: hotelConfig, updateConfig } = useHotelConfig()
+  const [notifyRoom, setNotifyRoom] = useState(null)
+  const [menuEditText, setMenuEditText] = useState('')
+  const [foodActive, setFoodActive] = useState(true)
+
+  useEffect(() => {
+    if (hotelConfig) {
+      setMenuEditText(hotelConfig.menu_del_dia_texto || '')
+      setFoodActive(hotelConfig.modulo_comida_activo !== false)
+    }
+  }, [hotelConfig])
 
   // Toast notification for new requests
   const [toast, setToast] = useState({ visible: false, message: '' })
@@ -459,16 +539,32 @@ export default function Reception() {
     ))
   }
 
+  const handleSendNotification = async (roomId, titulo, mensaje) => {
+    const { error } = await supabase.from('notificaciones_habitacion').insert({
+      room_id: roomId, tipo: 'servicio', titulo, mensaje,
+    })
+    if (error) {
+      console.error('Error al enviar notificación:', error.message)
+      return
+    }
+    setNotifyRoom(null)
+  }
+
+  const handleToggleFood = async (active) => {
+    setFoodActive(active)
+    await updateConfig({ modulo_comida_activo: active })
+  }
+
+  const handleUpdateMenu = async () => {
+    await updateConfig({ menu_del_dia_texto: menuEditText })
+  }
+
   // Computations
   const occupiedRooms = rooms.filter(r => r.token_sesion_actual).length
   const availableRooms = rooms.filter(r => !r.token_sesion_actual && r.estado_limpieza === 'limpia').length
   const dirtyRooms = rooms.filter(r => r.estado_limpieza === 'sucia').length
   const occupancy = rooms.length > 0 ? Math.round((occupiedRooms / rooms.length) * 100) : 0
 
-  // Request computations
-  const filtered = filter === 'todas'
-    ? requests
-    : requests.filter(r => r.estado === filter)
   const pending = requests.filter(r => r.estado === 'pendiente').length
   const topService = useMemo(() => {
     if (requests.length === 0) return null
@@ -569,7 +665,9 @@ export default function Reception() {
           {[
             { id: 'rooms', label: 'Habitaciones' },
             { id: 'solicitudes', label: 'Solicitudes' },
+            { id: 'comunidad', label: 'Comunidad' },
             { id: 'reportes', label: 'Reportes' },
+            { id: 'config', label: 'Configuración' },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -629,7 +727,14 @@ export default function Reception() {
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold text-gray-700">{formatPrice(price)}</span>
                         {occupied && room.huesped_nombre && (
-                          <span className="text-[10px] text-blue-600 truncate max-w-[100px]">{room.huesped_nombre}</span>
+                          <span className="text-[10px] text-blue-600 truncate max-w-[80px]">{room.huesped_nombre}</span>
+                        )}
+                        {occupied && (
+                          <button onClick={(e) => { e.stopPropagation(); setNotifyRoom(room) }}
+                            className="text-[10px] px-1.5 py-0.5 rounded-lg bg-white/70 text-gray-500 hover:text-brand-600 hover:bg-white transition-all border border-blue-200"
+                            title="Enviar notificación">
+                            📨
+                          </button>
                         )}
                       </div>
 
@@ -662,101 +767,184 @@ export default function Reception() {
 
         {/* ===== SOLICITUDES ===== */}
         {tab === 'solicitudes' && (
-          <>
+          <div className="pb-24">
+            {/* Summary bar */}
             <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-none pb-1">
-              {FILTERS.map(f => {
-                const s = STATUS[f]
+              {[
+                { id: 'pendiente', count: requests.filter(r => r.estado === 'pendiente').length },
+                { id: 'aceptado', count: requests.filter(r => r.estado === 'aceptado').length },
+                { id: 'completado', count: requests.filter(r => r.estado === 'completado').length },
+              ].map(s => (
+                <div key={s.id}
+                  className={`flex-1 rounded-xl px-3 py-2 border ${
+                    s.id === 'pendiente' ? 'bg-amber-50 border-amber-200' :
+                    s.id === 'aceptado' ? 'bg-brand-50 border-brand-200' :
+                    'bg-gray-50 border-gray-200'
+                  }`}>
+                  <p className={`text-lg font-display font-semibold ${
+                    s.id === 'pendiente' ? 'text-amber-700' :
+                    s.id === 'aceptado' ? 'text-brand-700' :
+                    'text-gray-500'
+                  }`}>{s.count}</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wider">{STATUS[s.id]?.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Kanban columns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {['pendiente', 'aceptado', 'completado'].map(col => {
+                const st = STATUS[col]
+                const colReqs = requests.filter(r => r.estado === col)
                 return (
-                  <button key={f} onClick={() => setFilter(f)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium capitalize whitespace-nowrap transition-all duration-200 ${
-                      filter === f ? 'bg-gray-900 text-white' : 'bg-surface-2 text-gray-500 hover:bg-surface-3'
-                    }`}>
-                    {f === 'todas' ? 'Todas' : s?.label}
-                    {f !== 'todas' && (
-                      <span className="ml-1.5 opacity-70">{requests.filter(r => r.estado === f).length}</span>
-                    )}
-                  </button>
+                  <motion.div key={col} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
+                    <div className={`rounded-xl px-3 py-2 border ${st.border} ${st.bg} flex items-center justify-between`}>
+                      <span className={`text-xs font-semibold ${st.text}`}>{st.label}</span>
+                      <span className={`text-xs font-mono ${st.text}`}>{colReqs.length}</span>
+                    </div>
+                    <div className="space-y-2 min-h-[120px]">
+                      <AnimatePresence>
+                        {colReqs.map((req, i) => {
+                          const roomNum = req.rooms?.numero || '—'
+                          return (
+                            <motion.div key={req.id} layout initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
+                              transition={{ delay: i * 0.03, duration: 0.3 }}
+                              onClick={() => setSelected(req.id === selected ? null : req.id)}
+                              className={`rounded-xl border-2 p-3 cursor-pointer transition-all duration-200 ${
+                                selected === req.id ? 'border-brand-400 bg-white shadow-glass' : st.border + ' bg-white hover:shadow-sm'
+                              }`}>
+                              <div className="flex items-start justify-between gap-2 mb-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-xs font-bold ${st.text}`}>{roomNum}</span>
+                                  {req.staff && (
+                                    <span className="text-[10px] text-gray-400">· {req.staff.nombre.split(' ')[0]}</span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-gray-400 font-mono">
+                                  {new Date(req.created_at).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <p className="text-sm font-semibold text-gray-900 leading-tight">{req.tipo_servicio}</p>
+                              {req.nota && (
+                                <p className="text-[10px] text-gray-500 mt-1 italic leading-relaxed">&ldquo;{req.nota}&rdquo;</p>
+                              )}
+
+                              <AnimatePresence>
+                                {selected === req.id && req.estado !== 'completado' && (
+                                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                                    <div className="flex gap-1.5 mt-2.5 pt-2.5 border-t border-surface-3">
+                                      {req.estado === 'pendiente' && (
+                                        <button onClick={(e) => { e.stopPropagation(); handleAccept(req.id) }}
+                                          className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm">
+                                          👤 Asignar
+                                        </button>
+                                      )}
+                                      <button onClick={(e) => { e.stopPropagation(); advance(req.id) }}
+                                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 shadow-sm ${
+                                          req.estado === 'pendiente'
+                                            ? 'bg-amber-500 text-white hover:bg-amber-600'
+                                            : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                        }`}>
+                                        {req.estado === 'pendiente' ? '→ Aceptar' : '✓ Completar'}
+                                      </button>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+
+                              {/* Progress dots */}
+                              <div className="flex gap-1 mt-2">
+                                <div className={`h-1 flex-1 rounded-full ${['pendiente', 'aceptado', 'completado'].indexOf(req.estado) >= 0 ? 'bg-brand-400' : 'bg-surface-3'}`} />
+                                <div className={`h-1 flex-1 rounded-full ${['aceptado', 'completado'].indexOf(req.estado) >= 0 ? 'bg-brand-500' : 'bg-surface-3'}`} />
+                                <div className={`h-1 flex-1 rounded-full ${req.estado === 'completado' ? 'bg-emerald-400' : 'bg-surface-3'}`} />
+                              </div>
+                            </motion.div>
+                          )
+                        })}
+                      </AnimatePresence>
+                      {colReqs.length === 0 && (
+                        <div className="flex items-center justify-center h-24 rounded-xl border-2 border-dashed border-surface-3">
+                          <p className="text-xs text-gray-400">Vacío</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
                 )
               })}
             </div>
+          </div>
+        )}
 
-            <div className="space-y-2.5 pb-24">
-              <AnimatePresence>
-                {filtered.map((req, i) => {
-                  const st = STATUS[req.estado]
-                  const roomNum = req.rooms?.numero || '—'
-                  return (
-                    <motion.div key={req.id} layout initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }}
-                      transition={{ delay: i * 0.04, duration: 0.35 }}
-                      onClick={() => setSelected(req.id === selected ? null : req.id)}
-                      className={`rounded-2xl border p-4 cursor-pointer transition-all duration-200 ${
-                        req.estado === 'completado'
-                          ? 'bg-surface-1 border-surface-3 opacity-60 hover:opacity-80'
-                          : 'bg-white border-surface-3 hover:border-brand-200 hover:shadow-glass shadow-[0_1px_4px_rgba(0,0,0,0.04)]'
-                      } ${selected === req.id ? 'border-brand-300 shadow-glass' : ''}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold ${st.bg} ${st.text} border ${st.border}`}>
-                            {roomNum}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-sm font-semibold text-gray-900">{req.tipo_servicio}</p>
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${st.bg} ${st.text} border ${st.border}`}>{st.label}</span>
-                            </div>
-                            <p className="text-xs text-gray-400 mt-0.5">Hab. {roomNum}</p>
-                            {req.nota && (
-                              <p className="text-xs text-gray-500 mt-1.5 bg-surface-1 rounded-lg px-2.5 py-1.5 italic">&ldquo;{req.nota}&rdquo;</p>
-                            )}
-                            {req.staff && (
-                              <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
-                                <span>👤</span>
-                                <span>{req.staff.nombre} · {req.staff.rol}</span>
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-                          <span className="text-xs font-mono text-gray-400">
-                            {new Date(req.created_at).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </div>
+        {/* ===== COMUNIDAD ===== */}
+        {tab === 'comunidad' && (
+          <motion.div key="comunidad" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pb-24">
+            <div className="bg-white rounded-2xl p-5 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">💬</span>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Chat de la comunidad</p>
+                  <p className="text-xs text-gray-400">Los mensajes se comparten con todos los huéspedes</p>
+                </div>
+              </div>
+              <div className="h-px bg-surface-3 my-4" />
+              <ChatPanel isStaff senderName="Recepción" roomId={null} roomNumero="Recepcion" />
+            </div>
+          </motion.div>
+        )}
 
-                      <AnimatePresence>
-                        {selected === req.id && req.estado !== 'completado' && (
-                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
-                            <div className="flex gap-2 mt-4 pt-3 border-t border-surface-3">
-                              <button onClick={(e) => { e.stopPropagation(); if (req.estado === 'pendiente') handleAccept(req.id); else advance(req.id) }}
-                                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95 ${
-                                  req.estado === 'pendiente'
-                                    ? 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm'
-                                    : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm'
-                                }`}>
-                                {req.estado === 'pendiente' ? '👤 Asignar y aceptar' : '✓ Marcar completado'}
-                              </button>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  )
-                })}
-              </AnimatePresence>
-
-              {!reqsLoading && filtered.length === 0 && (
-                <div className="text-center py-16">
-                  <p className="text-3xl mb-3">🎉</p>
-                  <p className="text-sm font-medium text-gray-500">
-                    No hay solicitudes {filter !== 'todas' ? `con estado "${STATUS[filter]?.label}"` : ''}
-                  </p>
+        {/* ===== CONFIGURACIÓN ===== */}
+        {tab === 'config' && (
+          <motion.div key="config" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="pb-24 space-y-5">
+            {/* Food module toggle */}
+            <div className="bg-white rounded-2xl p-5 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-widest font-medium mb-0.5">Módulo de comida</p>
+                  <p className="text-sm text-gray-600">Activar/desactivar servicio de alimentos para huéspedes</p>
+                </div>
+                <button
+                  onClick={() => handleToggleFood(!foodActive)}
+                  className={`relative w-14 h-7 rounded-full transition-all duration-300 ${
+                    foodActive ? 'bg-brand-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm transition-all duration-300 ${
+                    foodActive ? 'left-7' : 'left-0.5'
+                  }`} />
+                </button>
+              </div>
+              {foodActive && (
+                <div className="pt-4 border-t border-surface-3">
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Menú del día</label>
+                      <textarea
+                        value={menuEditText}
+                        onChange={e => setMenuEditText(e.target.value)}
+                        rows={2}
+                        placeholder="Ej: Desayuno: 7-10am, Almuerzo: 12-3pm, Cena: 6-9pm"
+                        className="w-full text-sm bg-surface-1 rounded-xl px-4 py-2.5 border border-surface-3 focus:outline-none focus:border-brand-400 transition-all resize-none"
+                      />
+                    </div>
+                    <button onClick={handleUpdateMenu}
+                      className="py-2.5 px-5 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 active:scale-95 transition-all shadow-sm">
+                      Guardar
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Horario de cocina: {hotelConfig?.horario_cocina || '7:00 - 22:00'}</p>
                 </div>
               )}
             </div>
-          </>
+
+            {/* Horario de cocina */}
+            <div className="bg-white rounded-2xl p-5 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+              <p className="text-xs text-gray-400 uppercase tracking-widest font-medium mb-1">Horario de cocina</p>
+              <p className="text-sm text-gray-700">{hotelConfig?.horario_cocina || '7:00 - 22:00'}</p>
+              <p className="text-xs text-gray-400 mt-2">Configura en Supabase → hotel_config → horario_cocina</p>
+            </div>
+          </motion.div>
         )}
 
         {/* ===== REPORTES ===== */}
@@ -850,6 +1038,13 @@ export default function Reception() {
       <AnimatePresence>
         {assigning && (
           <StaffAssigner requestId={assigning} onAssign={(id, staffId) => advance(id, staffId)} onClose={() => setAssigning(null)} />
+        )}
+      </AnimatePresence>
+
+      {/* Send Notification Modal */}
+      <AnimatePresence>
+        {notifyRoom && (
+          <SendNotificationModal room={notifyRoom} onClose={() => setNotifyRoom(null)} onSend={handleSendNotification} />
         )}
       </AnimatePresence>
 

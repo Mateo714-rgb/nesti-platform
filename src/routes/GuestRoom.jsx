@@ -9,10 +9,15 @@ import { useHotelConfig, getInfoItems } from '../hooks/useHotelConfig'
 import GlassCard from '../components/GlassCard'
 import RequestModal from '../components/RequestModal'
 import ServiceCard from '../components/ServiceCard'
+import ChatPanel from '../components/ChatPanel'
 import { services as fallbackServices } from '../data/hotel'
 import { getRoomPrice, formatPrice } from '../data/prices'
 
-const CATEGORIES = ['todos', 'habitación', 'alimentos', 'logística']
+function getCategories(config) {
+  const base = ['todos', 'habitación', 'logística']
+  if (config?.modulo_comida_activo !== false) base.splice(2, 0, 'alimentos')
+  return base
+}
 
 const STATUS = {
   pendiente: { label: 'Pendiente', dot: 'bg-amber-400', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
@@ -177,10 +182,13 @@ export default function GuestRoom() {
     )
   }
 
+  const categories = getCategories(hotelConfig)
+
   const filtered =
     activeCategory === 'todos'
-      ? services
+      ? services.filter((s) => hotelConfig?.modulo_comida_activo !== false || s.category !== 'alimentos')
       : services.filter((s) => s.category === activeCategory)
+        .filter((s) => hotelConfig?.modulo_comida_activo !== false || s.category !== 'alimentos')
 
   const today = new Date().toLocaleDateString('es-EC', {
     weekday: 'long', day: 'numeric', month: 'long',
@@ -283,6 +291,7 @@ export default function GuestRoom() {
               { id: 'services', label: 'Servicios' },
               { id: 'requests', label: 'Mis Solicitudes' },
               { id: 'novedades', label: 'Hoy en el Hotel' },
+              { id: 'comunidad', label: 'Comunidad' },
               { id: 'info', label: 'Info Hotel' },
             ].map((t) => (
               <button
@@ -306,7 +315,7 @@ export default function GuestRoom() {
             <motion.div key="services" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}>
               <div className="px-4 mb-4 overflow-x-auto scrollbar-none">
                 <div className="flex gap-2 w-max">
-                  {CATEGORIES.map((c) => (
+                  {categories.map((c) => (
                     <button
                       key={c}
                       onClick={() => setActiveCategory(c)}
@@ -453,6 +462,22 @@ export default function GuestRoom() {
                   )
                 })
               )}
+            </motion.div>
+          )}
+
+          {/* === COMUNIDAD === */}
+          {tab === 'comunidad' && (
+            <motion.div key="comunidad" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} className="px-4 pb-10">
+              <div className="bg-white rounded-2xl p-4 border border-surface-3 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-lg">💬</span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Chat del Hotel</p>
+                    <p className="text-xs text-gray-400">Conoce a otros huéspedes</p>
+                  </div>
+                </div>
+                <ChatPanel roomId={room?.id} roomNumero={room?.numero} senderName={room?.huesped_nombre} />
+              </div>
             </motion.div>
           )}
 

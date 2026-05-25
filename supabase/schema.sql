@@ -68,6 +68,9 @@ CREATE TABLE IF NOT EXISTS hotel_config (
   reception_info TEXT DEFAULT '',
   check_out_info TEXT DEFAULT '',
   address TEXT DEFAULT '',
+  modulo_comida_activo BOOLEAN DEFAULT true,
+  menu_del_dia_texto TEXT DEFAULT '',
+  horario_cocina TEXT DEFAULT '7:00 - 22:00',
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -258,6 +261,31 @@ CREATE POLICY "Notificaciones actualizables por el huésped"
     )
   );
 
--- 17. HABILITAR REALTIME
-ALTER PUBLICATION supabase_realtime ADD TABLE solicitudes_servicio;
-ALTER PUBLICATION supabase_realtime ADD TABLE rooms;
+-- 17. CHAT COMUNITARIO
+CREATE TABLE IF NOT EXISTS chat_mensajes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  room_numero VARCHAR(10) NOT NULL DEFAULT '',
+  nombre_emisor TEXT NOT NULL DEFAULT 'Huésped',
+  mensaje TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_mensajes_creado ON chat_mensajes(created_at DESC);
+
+-- 18. HABILITAR REALTIME
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'solicitudes_servicio') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE solicitudes_servicio;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'rooms') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE rooms;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'chat_mensajes') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE chat_mensajes;
+  END IF;
+END $$;

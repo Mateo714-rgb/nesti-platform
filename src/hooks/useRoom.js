@@ -3,17 +3,6 @@ import { supabase } from '../lib/supabase'
 
 const TOKEN_KEY = 'nesti_session_token'
 
-const MOCK_ROOM = {
-  id: '00000000-0000-0000-0000-000000000101',
-  numero: '101',
-  nombre: 'Mock Habitación',
-  tipo: 'Estándar',
-  descripcion:
-    'Habitación de prueba con vista al jardín, cama queen y baño privado.',
-  token_sesion_actual: crypto.randomUUID(),
-  created_at: new Date().toISOString(),
-}
-
 export function useRoom(uuid) {
   const [room, setRoom] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -32,11 +21,23 @@ export function useRoom(uuid) {
         .from('rooms')
         .select('*')
         .eq('id', uuid)
-        .single()
+        .maybeSingle()
 
       if (cancelled) return
 
-      const roomData = err || !data ? MOCK_ROOM : data
+      if (err) {
+        setError('Error al cargar la habitación.')
+        setLoading(false)
+        return
+      }
+
+      if (!data) {
+        setError('Habitación no encontrada. Verifica el enlace.')
+        setLoading(false)
+        return
+      }
+
+      const roomData = data
       const dbToken = roomData.token_sesion_actual
 
       if (!dbToken) {

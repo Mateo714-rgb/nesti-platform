@@ -13,6 +13,9 @@ const DEFAULT_CONFIG = {
   reception_info: 'Disponible 24 horas. Llama al ext. 0 desde el teléfono de tu habitación',
   check_out_info: 'Hasta las 12:00 PM. Extensión disponible según disponibilidad (cobro extra)',
   address: 'Av. Quito km 4.5, Mindo, Ecuador',
+  modulo_comida_activo: true,
+  menu_del_dia_texto: '',
+  horario_cocina: '7:00 - 22:00',
 }
 
 export function useHotelConfig() {
