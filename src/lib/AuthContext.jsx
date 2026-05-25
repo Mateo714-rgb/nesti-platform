@@ -8,8 +8,10 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [perfil, setPerfil] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [perfilLoading, setPerfilLoading] = useState(false)
 
   const fetchPerfil = async (userId) => {
+    setPerfilLoading(true)
     try {
       const { data, error } = await supabase
         .from('perfiles')
@@ -25,6 +27,8 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('Error fetching perfil:', err)
       setPerfil(null)
+    } finally {
+      setPerfilLoading(false)
     }
   }
 
@@ -79,7 +83,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, perfil, loading, signIn, signUp, signOut, refreshPerfil }}>
+    <AuthContext.Provider value={{ user, session, perfil, loading, perfilLoading, signIn, signUp, signOut, refreshPerfil }}>
       {children}
     </AuthContext.Provider>
   )

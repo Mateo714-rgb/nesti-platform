@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 
 export default function Login() {
@@ -34,7 +35,7 @@ export default function Login() {
     setError('')
     setSubmitting(true)
 
-    const { error: err } = await signIn(email, password)
+    const { data, error: err } = await signIn(email, password)
 
     if (err) {
       setError(
@@ -46,7 +47,29 @@ export default function Login() {
       return
     }
 
-    // Let the useEffect handle redirect
+    // Buscar perfil directamente con el usuario retornado para redirigir
+    if (data?.user) {
+      try {
+        const { data: perfilData } = await supabase
+          .from('perfiles')
+          .select('rol')
+          .eq('user_id', data.user.id)
+          .maybeSingle()
+
+        if (perfilData?.rol === 'owner') {
+          navigate('/admin', { replace: true })
+          return
+        }
+        if (perfilData?.rol === 'recepcion') {
+          navigate('/reception', { replace: true })
+          return
+        }
+      } catch (e) {
+        console.warn('Error al obtener perfil, redirigiendo por defecto')
+      }
+    }
+
+    navigate(redirect || '/admin', { replace: true })
   }
 
   return (
