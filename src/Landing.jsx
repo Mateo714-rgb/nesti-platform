@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { useAuth } from './lib/AuthContext'
 
 const svgs = {
