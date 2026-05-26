@@ -736,14 +736,14 @@ export default function Landing() {
                   Sin fricción. Sin apps. Tus huéspedes acceden instantáneamente a servicios, menús y asistencia con un simple escaneo desde su propio móvil.
                 </p>
                 <div className="mt-auto flex items-center gap-4">
-                  <span className="px-4 py-2 rounded-full bg-brand-100 text-brand-700 text-sm font-bold">Mobile First</span>
-                  <span className="px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold">Zero Friction</span>
+                  <span className="px-4 py-2 rounded-full bg-brand-100 text-brand-700 text-xs font-bold uppercase tracking-wider">Mobile First</span>
+                  <span className="px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">Zero Friction</span>
                 </div>
               </div>
-              <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
-                <img src={images.qrAction} alt="QR Scan" className="w-full h-full object-cover" />
+              <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 group-hover:opacity-30 transition-all duration-700 pointer-events-none transform group-hover:scale-105">
+                <img src="https://images.unsplash.com/photo-1596524430615-b46475ddff6e?auto=format&fit=crop&q=80&w=800" alt="QR Scan" className="w-full h-full object-cover" />
               </div>
-              <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-brand-500/5 rounded-full blur-3xl" />
+              <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl" />
             </motion.div>
 
             {/* Reception Panel */}
@@ -758,13 +758,14 @@ export default function Landing() {
                 <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center mb-8 shadow-lg shadow-amber-500/20">
                   <Icon name="reception" className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="font-display text-2xl font-bold text-gray-900 mb-4">Panel de Recepción</h3>
-                <p className="text-gray-500 leading-relaxed">
-                  Gestión centralizada en tiempo real. Responde a solicitudes en segundos y mejora la eficiencia operativa.
+                <h3 className="font-display text-2xl font-bold text-gray-900 mb-4">Panel de Control</h3>
+                <p className="text-gray-500 leading-relaxed text-sm">
+                  Gestión centralizada en tiempo real. Responde a solicitudes en segundos y optimiza tu flujo de trabajo.
                 </p>
               </div>
-              <div className="mt-8 h-40 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden relative">
-                <div className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:scale-110 transition-transform duration-700" style={{ backgroundImage: `url(${images.reception})` }} />
+              <div className="mt-8 h-44 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden relative">
+                <div className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:scale-110 transition-transform duration-1000" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=800)` }} />
+                <div className="absolute inset-0 bg-gradient-to-t from-white/40 to-transparent" />
               </div>
             </motion.div>
 
@@ -780,13 +781,14 @@ export default function Landing() {
                 <div className="w-14 h-14 rounded-2xl bg-brand-600 flex items-center justify-center mb-8 shadow-lg shadow-brand-600/20">
                   <Icon name="service" className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="font-display text-2xl font-bold text-gray-900 mb-4">Servicios Ilimitados</h3>
-                <p className="text-gray-500 leading-relaxed">
-                  Desde gastronomía hasta spa. Configura todo tu catálogo y permite pedidos instantáneos.
+                <h3 className="font-display text-2xl font-bold text-gray-900 mb-4">Servicios Digitales</h3>
+                <p className="text-gray-500 leading-relaxed text-sm">
+                  Desde gastronomía hasta spa. Configura todo tu catálogo y permite pedidos instantáneos sin intermediarios.
                 </p>
               </div>
-              <div className="mt-8 h-40 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden relative">
-                <div className="absolute inset-0 bg-cover bg-center opacity-50 group-hover:scale-110 transition-transform duration-700" style={{ backgroundImage: `url(${images.roomService})` }} />
+              <div className="mt-8 h-44 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden relative">
+                <div className="absolute inset-0 bg-cover bg-center opacity-60 group-hover:scale-110 transition-transform duration-1000" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800)` }} />
+                <div className="absolute inset-0 bg-gradient-to-t from-white/40 to-transparent" />
               </div>
             </motion.div>
 
@@ -803,9 +805,9 @@ export default function Landing() {
                   <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-8 border border-white/20">
                     <Icon name="analytics" className="w-7 h-7 text-white" />
                   </div>
-                  <h3 className="font-display text-3xl font-bold mb-4">Analytics Avanzado</h3>
+                  <h3 className="font-display text-3xl font-bold mb-4 italic">Inteligencia de Negocio</h3>
                   <p className="text-white/60 text-lg leading-relaxed">
-                    Entiende el comportamiento de tus huéspedes. Identifica servicios populares, horas pico y cuellos de botella antes de que ocurran.
+                    Entiende el comportamiento de tus huéspedes. Identifica servicios populares, horas pico y optimiza tu personal con datos reales.
                   </p>
                 </div>
                 <div className="flex-1 flex items-end justify-center pt-8">
@@ -815,8 +817,8 @@ export default function Landing() {
                         key={i}
                         initial={{ height: 0 }}
                         whileInView={{ height: `${h}%` }}
-                        transition={{ delay: i * 0.1, duration: 1 }}
-                        className="flex-1 bg-brand-400 rounded-t-lg"
+                        transition={{ delay: i * 0.1, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                        className="flex-1 bg-gradient-to-t from-brand-500 to-emerald-400 rounded-t-lg shadow-[0_0_20px_rgba(20,116,116,0.3)]"
                       />
                     ))}
                   </div>
