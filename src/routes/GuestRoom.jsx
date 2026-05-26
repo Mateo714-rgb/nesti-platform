@@ -199,51 +199,53 @@ export default function GuestRoom() {
       <div className="w-full max-w-sm relative">
         {/* Hero header */}
         <motion.div
-          className="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-brand-800 px-6 pt-14 pb-10 noise"
+          className="relative overflow-hidden bg-gradient-to-br from-brand-900 via-brand-800 to-brand-900 px-6 pt-14 pb-12 noise"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         >
           <div
-            className="absolute inset-0 opacity-10"
+            className="absolute inset-0 opacity-20"
             style={{
               backgroundImage:
-                'radial-gradient(circle at 70% 20%, rgba(255,255,255,0.4) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(255,255,255,0.2) 0%, transparent 40%)',
+                'radial-gradient(circle at 70% 20%, rgba(20,116,116,0.6) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(245,158,11,0.3) 0%, transparent 40%)',
             }}
           />
           <div className="relative">
-            <div className="flex items-start justify-between mb-6">
+            <div className="flex items-start justify-between mb-8">
               <div>
-                <p className="text-brand-200 text-xs font-medium tracking-widest uppercase mb-1">Bienvenido</p>
-                <h1 className="font-display text-2xl font-semibold text-white leading-tight">{hotel.guestName} 👋</h1>
-                <p className="text-brand-200 text-sm mt-0.5">{today}</p>
+                <p className="text-emerald-400 text-[10px] font-bold tracking-[0.2em] uppercase mb-1">Guest Experience</p>
+                <h1 className="font-display text-2xl font-bold text-white leading-tight">¡Hola, {hotel.guestName.split(' ')[0]}! 👋</h1>
+                <p className="text-white/50 text-xs mt-1 font-medium">{today}</p>
               </div>
-              <div className="text-right flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <button onClick={() => { setShowNotis(!showNotis); if (!showNotis) markLeidas() }}
-                  className="relative w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center hover:bg-white/25 transition-all">
-                  <span className="text-lg">🔔</span>
+                  className="relative w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all shadow-xl">
+                  <span className="text-xl">🔔</span>
                   {notiCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-400 text-amber-900 text-[10px] font-bold flex items-center justify-center shadow-sm">
+                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-400 text-amber-950 text-[10px] font-bold flex items-center justify-center shadow-lg border-2 border-brand-800">
                       {notiCount}
                     </span>
                   )}
                 </button>
-                <div>
-                  <p className="text-brand-200 text-xs">Habitación</p>
-                  <p className="font-display text-3xl font-semibold text-white">{room?.numero}</p>
-                </div>
               </div>
             </div>
 
-            <GlassCard className="p-4 !bg-white/80">
-              <div className="flex items-center justify-between mb-1">
-                <p className="font-semibold text-brand-900">{room?.nombre}</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-brand-600">{formatPrice(getRoomPrice(room))}/noche</span>
-                  <span className="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full font-medium">{room?.tipo}</span>
+            <GlassCard className="p-5 !bg-white/95 !rounded-3xl shadow-2xl border-white/40">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-[10px] font-bold text-brand-500 uppercase tracking-wider mb-0.5">Tu Estancia</p>
+                  <p className="font-display font-bold text-gray-900">Habitación {room?.numero}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-gray-900">{formatPrice(getRoomPrice(room))}</p>
+                  <p className="text-[10px] text-gray-400 font-medium">por noche</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-500 mb-3">{room?.descripcion}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg uppercase tracking-wider">{room?.tipo}</span>
+                <span className="text-[10px] font-bold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-lg uppercase tracking-wider">Premium Service</span>
+              </div>
             </GlassCard>
           </div>
         </motion.div>
@@ -280,29 +282,30 @@ export default function GuestRoom() {
           </div>
         </motion.div>
 
-        {/* Tab switcher — 3 tabs */}
+        {/* Tab switcher — Optimized for mobile */}
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12, duration: 0.4 }}
-          className="mx-4 mt-5 mb-4"
+          className="mx-4 mt-6 mb-4"
         >
-          <div className="flex bg-surface-2 rounded-2xl p-1 gap-1">
+          <div className="flex bg-surface-2 rounded-2xl p-1 gap-1 overflow-x-auto scrollbar-none">
             {[
-              { id: 'services', label: 'Servicios' },
-              { id: 'requests', label: 'Mis Solicitudes' },
-              { id: 'novedades', label: 'Hoy en el Hotel' },
-              { id: 'comunidad', label: 'Comunidad' },
-              { id: 'info', label: 'Info Hotel' },
+              { id: 'services', label: 'Servicios', icon: '🛎️' },
+              { id: 'requests', label: 'Pedidos', icon: '📋' },
+              { id: 'novedades', label: 'Agenda', icon: '🎉' },
+              { id: 'info', label: 'Hotel', icon: '🏨' },
+              { id: 'comunidad', label: 'Chat', icon: '💬' },
             ].map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                className={`flex-none px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
                   tab === t.id
-                    ? 'bg-white text-brand-700 shadow-glass'
+                    ? 'bg-white text-brand-700 shadow-glass-lg'
                     : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
+                <span className="text-base">{t.icon}</span>
                 {t.label}
               </button>
             ))}

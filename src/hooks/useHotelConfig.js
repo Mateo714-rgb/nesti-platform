@@ -22,7 +22,7 @@ export function useHotelConfig() {
   const [config, setConfig] = useState(DEFAULT_CONFIG)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchConfig = () => {
     supabase
       .from('hotel_config')
       .select('*')
@@ -35,6 +35,25 @@ export function useHotelConfig() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    fetchConfig()
+
+    const channel = supabase
+      .channel('hotel-config-updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'hotel_config'
+      }, () => {
+        fetchConfig()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const updateConfig = async (updates) => {
