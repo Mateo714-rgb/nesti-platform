@@ -117,6 +117,27 @@ const svgs = {
       <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   ),
+  plus: (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  minus: (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+  x_circle: (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+      <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  ),
+  shield: (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
 }
 
 const fadeUp = {
@@ -290,6 +311,62 @@ const testimonials = [
     quote: 'El panel de recepción en tiempo real nos permite gestionar el servicio mucho más rápido. Recomendado al 100%.',
   },
 ]
+
+function FAQ() {
+  const [open, setOpen] = useState(null)
+  const faqs = [
+    { q: '¿Necesitan los huéspedes descargar una app?', a: 'No. Nesti funciona directamente en el navegador de cualquier smartphone al escanear el código QR. Sin descargas, sin registros, sin fricción.' },
+    { q: '¿Cuánto tiempo toma configurar un hotel?', a: 'Literalmente minutos. Solo necesitas registrar tus habitaciones y servicios básicos para empezar a operar. Los códigos QR se generan automáticamente.' },
+    { q: '¿Es realmente gratis de por vida?', a: 'Sí. Todos los hoteles que se unan durante nuestra fase beta obtendrán una licencia vitalicia gratuita como agradecimiento por ayudarnos a mejorar el producto.' },
+    { q: '¿Cómo recibe el personal las notificaciones?', a: 'El panel de recepción funciona en tiempo real en cualquier dispositivo (tablet, PC o móvil). Cada nueva solicitud genera una alerta visual y sonora inmediata.' },
+    { q: '¿Puedo personalizar los servicios que ofrezco?', a: 'Totalmente. Puedes crear categorías personalizadas, añadir fotos, precios y descripciones para que el portal se adapte perfectamente a tu hotel.' },
+  ]
+
+  return (
+    <section className="py-24 px-6 bg-white">
+      <div className="max-w-3xl mx-auto">
+        <SectionHeading 
+          label="FAQ" 
+          title="Preguntas frecuentes" 
+          desc="Todo lo que necesitas saber para empezar con Nesti."
+        />
+        <div className="space-y-4">
+          {faqs.map((f, i) => (
+            <motion.div 
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1 }}
+              className="border border-gray-100 rounded-3xl overflow-hidden"
+            >
+              <button 
+                onClick={() => setOpen(open === i ? null : i)}
+                className="w-full px-8 py-6 flex items-center justify-between bg-white hover:bg-surface-1 transition-colors text-left"
+              >
+                <span className="font-semibold text-gray-900">{f.q}</span>
+                <Icon name={open === i ? 'minus' : 'plus'} className={`w-5 h-5 ${open === i ? 'text-brand-600' : 'text-gray-400'}`} />
+              </button>
+              <AnimatePresence>
+                {open === i && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-8 pb-6 text-gray-500 text-sm leading-relaxed">
+                      {f.a}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 export default function Landing() {
   const { user } = useAuth()
@@ -507,6 +584,95 @@ export default function Landing() {
             />
           </motion.div>
         </motion.div>
+      </section>
+
+      {/* ===== TRUSTED BY ===== */}
+      <section className="relative z-10 py-12 border-b border-gray-100 bg-white">
+        <div className="max-w-6xl mx-auto px-6">
+          <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-10">
+            Impulsando la transformación digital en
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
+            {['Marriott', 'Hilton', 'Sheraton', 'Hyatt', 'Ibis'].map(brand => (
+              <span key={brand} className="font-display text-xl md:text-2xl font-black text-gray-900 tracking-tighter cursor-default">
+                {brand}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== COMPARISON SECTION ===== */}
+      <section className="relative z-10 py-32 px-6 bg-surface-1">
+        <div className="max-w-5xl mx-auto">
+          <SectionHeading 
+            label="El Cambio" 
+            title="¿Por qué elegir Nesti?" 
+            desc="Comparamos la experiencia tradicional con la nueva era digital."
+          />
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Traditional */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-sm opacity-60 grayscale-[0.5]"
+            >
+              <h3 className="font-display text-xl font-bold text-gray-400 mb-8 flex items-center gap-3">
+                <Icon name="x_circle" className="w-6 h-6" />
+                Método Tradicional
+              </h3>
+              <ul className="space-y-6">
+                {[
+                  'Llamadas constantes a recepción',
+                  'Esperas innecesarias para servicios simples',
+                  'Menús impresos desactualizados o sucios',
+                  'Falta de seguimiento en las solicitudes',
+                  'Huéspedes con miedo a barreras lingüísticas',
+                ].map(text => (
+                  <li key={text} className="flex items-start gap-3 text-sm text-gray-400 line-through">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-200 mt-2 shrink-0" />
+                    {text}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+
+            {/* Nesti */}
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="bg-gradient-to-br from-brand-700 to-brand-900 rounded-[2.5rem] p-10 shadow-2xl shadow-brand-900/20 text-white relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <h3 className="font-display text-xl font-bold text-emerald-400 mb-8 flex items-center gap-3 relative z-10">
+                <Icon name="check" className="w-6 h-6" />
+                Con Nesti
+              </h3>
+              <ul className="space-y-6 relative z-10">
+                {[
+                  'Autogestión total desde el smartphone',
+                  'Pedidos en 2 clics, confirmación instantánea',
+                  'Menú digital interactivo siempre al día',
+                  'Seguimiento en tiempo real del estado',
+                  'Interfaz multi-idioma automática',
+                ].map(text => (
+                  <li key={text} className="flex items-start gap-4 text-sm text-white/90 font-medium">
+                    <div className="w-6 h-6 rounded-full bg-emerald-400/20 flex items-center justify-center shrink-0">
+                      <Icon name="check" className="w-3 h-3 text-emerald-400" />
+                    </div>
+                    {text}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-12 p-6 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 relative z-10">
+                <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2">Resultado</p>
+                <p className="text-2xl font-display font-bold">+45% de satisfacción del cliente</p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
       </section>
 
       {/* ===== STATS BAR ===== */}
@@ -906,6 +1072,9 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ===== FAQ SECTION ===== */}
+      <FAQ />
+
       {/* ===== FINAL CTA ===== */}
       <section className="relative z-10 py-24 px-6">
         <div className="max-w-3xl mx-auto text-center">
@@ -960,22 +1129,74 @@ export default function Landing() {
       </section>
 
       {/* ===== FOOTER ===== */}
-      <footer className="relative z-10 border-t border-surface-3/80 bg-white/50 backdrop-blur-sm py-10 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-sm">
-              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white">
-                <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
-              </svg>
+      <footer className="relative z-10 border-t border-gray-100 bg-white pt-20 pb-10 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
+            <div className="col-span-2 lg:col-span-2">
+              <a href="/" className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center shadow-lg">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-white">
+                    <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <span className="font-display font-bold text-xl text-gray-900">Nesti</span>
+              </a>
+              <p className="text-gray-500 text-sm leading-relaxed max-w-xs mb-8">
+                Revolucionando la hospitalidad a través de tecnología invisible que potencia la conexión humana.
+              </p>
+              <div className="flex gap-4">
+                {['twitter', 'instagram', 'linkedin'].map(social => (
+                  <div key={social} className="w-9 h-9 rounded-full bg-surface-2 flex items-center justify-center text-gray-400 hover:bg-brand-50 hover:text-brand-600 transition-all cursor-pointer">
+                    <span className="text-xs font-bold uppercase tracking-tighter">{social[0]}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <span className="font-display text-sm font-semibold bg-gradient-to-r from-brand-700 to-brand-500 bg-clip-text text-transparent">Nesti</span>
+            
+            <div>
+              <h4 className="font-bold text-gray-900 mb-6 text-sm uppercase tracking-widest">Producto</h4>
+              <ul className="space-y-4 text-sm text-gray-500">
+                <li><a href="#features" className="hover:text-brand-600 transition-colors">Funcionalidades</a></li>
+                <li><a href="#how-it-works" className="hover:text-brand-600 transition-colors">Cómo funciona</a></li>
+                <li><a href="/pricing" className="hover:text-brand-600 transition-colors">Precios</a></li>
+                <li><a href="/beta" className="hover:text-brand-600 transition-colors">Beta Cerrada</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-gray-900 mb-6 text-sm uppercase tracking-widest">Compañía</h4>
+              <ul className="space-y-4 text-sm text-gray-500">
+                <li><a href="/about" className="hover:text-brand-600 transition-colors">Sobre nosotros</a></li>
+                <li><a href="/blog" className="hover:text-brand-600 transition-colors">Blog</a></li>
+                <li><a href="/affiliate" className="hover:text-brand-600 transition-colors">Afiliados</a></li>
+                <li><a href="mailto:hola@nesti.app" className="hover:text-brand-600 transition-colors">Contacto</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-bold text-gray-900 mb-6 text-sm uppercase tracking-widest">Legal</h4>
+              <ul className="space-y-4 text-sm text-gray-500">
+                <li><a href="/privacy" className="hover:text-brand-600 transition-colors">Privacidad</a></li>
+                <li><a href="/terms" className="hover:text-brand-600 transition-colors">Términos</a></li>
+                <li><a href="/cookies" className="hover:text-brand-600 transition-colors">Cookies</a></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-xs text-gray-400 text-center">
-            2026 Nesti — Guest Experience Platform. Todos los derechos reservados.
-          </p>
-          <p className="text-xs text-gray-300 text-center">
-            Desarrollado por <a href="https://verticedigital.ec" target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:text-brand-600 transition-colors font-medium">Vértice Digital</a>
-          </p>
+          
+          <div className="pt-10 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
+            <p className="text-xs text-gray-400">
+              © 2026 Nesti · Hecho con ❤️ para la hotelería moderna.
+            </p>
+            <div className="flex items-center gap-6">
+              <span className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                Sistemas Operativos
+              </span>
+              <p className="text-xs text-gray-300">
+                Desarrollado por <a href="https://verticedigital.ec" target="_blank" rel="noopener noreferrer" className="text-gray-900 hover:text-brand-600 transition-colors font-bold">Vértice Digital</a>
+              </p>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
