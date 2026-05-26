@@ -256,23 +256,34 @@ function Icon({ name, className }) {
   return <span className={className}>{svgs[name]}</span>
 }
 
+const images = {
+  hero: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1920',
+  roomService: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800',
+  reception: 'https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=800',
+  guest: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&q=80&w=800',
+  qrAction: 'https://images.unsplash.com/photo-1596524430615-b46475ddff6e?auto=format&fit=crop&q=80&w=800',
+}
+
 const testimonials = [
   {
-    initials: 'MR',
+    name: 'Mateo Rodríguez',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=150&h=150',
     hotel: 'Hotel Paraíso del Mar',
     flag: '🇲🇽',
     rating: 5,
     quote: 'Nesti transformó la experiencia de nuestros huéspedes. Ahora todo lo solicitan desde el QR sin pasar por recepción.',
   },
   {
-    initials: 'CL',
+    name: 'Carla López',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?fit=crop&w=150&h=150',
     hotel: 'Lodge Bosque Nublado',
     flag: '🇨🇷',
     rating: 5,
     quote: 'Implementarlo fue increíblemente fácil. En 30 minutos ya estábamos funcionando. Nuestros huéspedes aman la comodidad.',
   },
   {
-    initials: 'AV',
+    name: 'Andrés Valencia',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?fit=crop&w=150&h=150',
     hotel: 'Hotel Boutique Central',
     flag: '🇪🇨',
     rating: 5,
@@ -339,44 +350,25 @@ export default function Landing() {
 
       {/* ===== HERO ===== */}
       <section className="relative z-10 min-h-screen flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-900/90 via-brand-800/85 to-gray-900/90 z-0" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(20,116,116,0.3),transparent_70%),radial-gradient(ellipse_at_bottom_left,_rgba(245,158,11,0.15),transparent_60%)] z-0" />
-        <div className="absolute inset-0 bg-[url('/images/hero-bg.png')] bg-cover bg-center opacity-20 z-0" />
-        <div className="absolute inset-0 backdrop-blur-[3px] z-0" />
-
-        {/* Floating decorative shapes */}
-        <motion.div
-          animate={{ y: [0, -20, 0], rotate: [0, 5, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-20 left-10 w-32 h-32 rounded-full bg-brand-400/10 blur-[60px]"
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-900 via-brand-900/90 to-gray-900/95 z-0" />
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay z-0" 
+          style={{ backgroundImage: `url(${images.hero})` }}
         />
-        <motion.div
-          animate={{ y: [0, 15, 0], rotate: [0, -3, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute bottom-32 right-16 w-48 h-48 rounded-full bg-amber-400/10 blur-[80px]"
-        />
-        <motion.div
-          animate={{ y: [0, -12, 0] }}
-          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute top-1/3 right-1/4 w-2 h-2 rounded-full bg-brand-300/40"
-        />
-        <motion.div
-          animate={{ y: [0, 18, 0] }}
-          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-          className="absolute bottom-1/3 left-1/4 w-1.5 h-1.5 rounded-full bg-amber-300/40"
-        />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(20,116,116,0.4),transparent_70%),radial-gradient(ellipse_at_bottom_left,_rgba(245,158,11,0.2),transparent_60%)] z-0" />
+        <div className="absolute inset-0 backdrop-blur-[2px] z-0" />
 
         <div className="relative z-10 max-w-6xl mx-auto w-full px-6 py-24">
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
-            <div className="flex-1 text-center lg:text-left max-w-xl" style={{ y: heroY, opacity: heroOpacity }}>
+            <div className="flex-1 text-center lg:text-left max-w-2xl" style={{ y: heroY, opacity: heroOpacity }}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
               >
-                <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-6">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-soft" />
-                  <span className="text-xs font-medium text-white/90 tracking-wide">Guest Experience Platform</span>
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 mb-8 shadow-xl">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs font-semibold text-white tracking-widest uppercase">Intelligent Guest Experience</span>
                 </span>
               </motion.div>
 
@@ -384,12 +376,11 @@ export default function Landing() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.2 }}
-                className="font-display text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.1] text-balance mb-6"
+                className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-[1.05] mb-8"
               >
-                La experiencia del huésped,
-                <br />
-                <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-200 bg-clip-text text-transparent">
-                  redefinida
+                Tu hotel en la palma de 
+                <span className="block bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-200 bg-clip-text text-transparent italic">
+                  su mano
                 </span>
               </motion.h1>
 
@@ -397,36 +388,30 @@ export default function Landing() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.35 }}
-                className="text-base sm:text-lg text-white/60 max-w-lg mx-auto lg:mx-0 leading-relaxed mb-10 text-balance"
+                className="text-lg sm:text-xl text-white/70 max-w-lg mx-auto lg:mx-0 leading-relaxed mb-12"
               >
-                Asistente digital inteligente para hoteles. Tus huéspedes acceden a todos los servicios desde su habitación con solo escanear un código QR.
+                Sin descargas ni registros. Un ecosistema digital completo que conecta a tus huéspedes con todos tus servicios mediante un simple escaneo QR.
               </motion.p>
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
-                className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start"
+                className="flex flex-col sm:flex-row items-center gap-5 justify-center lg:justify-start"
               >
                 {user ? (
-                  <>
-                    <a href="/admin" className="group px-8 py-3.5 rounded-2xl text-sm font-semibold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-xl shadow-brand-500/20 hover:shadow-brand-500/30 hover:-translate-y-0.5 flex items-center gap-2">
-                      Ir al panel
-                      <Icon name="arrow_right" className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                    </a>
-                    <a href="/reception" className="px-8 py-3.5 rounded-2xl text-sm font-medium text-white/80 border border-white/20 hover:bg-white/10 hover:text-white transition-all backdrop-blur-sm">
-                      Recepción
-                    </a>
-                  </>
+                  <a href="/admin" className="group px-10 py-4 rounded-2xl text-base font-bold text-white bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 transition-all shadow-2xl shadow-brand-500/30 hover:-translate-y-1 flex items-center gap-3">
+                    Acceder al Panel
+                    <Icon name="arrow_right" className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </a>
                 ) : (
                   <>
-                    <a href="/beta-register" className="group px-8 py-3.5 rounded-2xl text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 transition-all shadow-xl shadow-amber-500/20 hover:shadow-amber-500/30 hover:-translate-y-0.5 flex items-center gap-2">
-                      Comenzar ahora
-                      <Icon name="arrow_right" className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    <a href="/beta-register" className="group px-10 py-4 rounded-2xl text-base font-bold text-white bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 transition-all shadow-2xl shadow-amber-500/30 hover:-translate-y-1 flex items-center gap-3">
+                      Empezar Gratis
+                      <Icon name="arrow_right" className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </a>
-                    <SmoothLink href="#features" className="px-8 py-3.5 rounded-2xl text-sm font-medium text-white/80 border border-white/20 hover:bg-white/10 hover:text-white transition-all backdrop-blur-sm flex items-center gap-2">
-                      <Icon name="play" className="w-4 h-4" />
-                      Ver más
+                    <SmoothLink href="#features" className="px-10 py-4 rounded-2xl text-base font-semibold text-white border border-white/30 hover:bg-white/10 transition-all backdrop-blur-md">
+                      Explorar
                     </SmoothLink>
                   </>
                 )}
@@ -435,68 +420,67 @@ export default function Landing() {
 
             {/* Phone mockup */}
             <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="flex-1 max-w-sm lg:max-w-none flex justify-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="flex-1 max-w-sm lg:max-w-none flex justify-center relative"
             >
+              <div className="absolute inset-0 bg-brand-400/20 blur-[120px] rounded-full" />
               <motion.div
-                animate={{ y: [-8, 8, -8] }}
+                animate={{ y: [-10, 10, -10] }}
                 transition={{ duration: 6, ease: 'easeInOut', repeat: Infinity }}
+                className="relative z-10"
               >
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-[32px] blur-[80px] scale-110 bg-gradient-to-b from-brand-400/30 via-brand-500/20 to-amber-400/20" />
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="relative bg-white/95 backdrop-blur-2xl rounded-[24px] p-6 sm:p-7 shadow-2xl border border-white/40"
-                    style={{ width: 320 }}
-                  >
-                    <div className="flex items-center gap-3 mb-5">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-md">
-                        <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white">
-                          <path d="M12 2L2 10h4v10h12V10h4L12 2z" fill="currentColor"/>
-                        </svg>
+                <div className="bg-gray-900 rounded-[3rem] p-3 shadow-2xl border-[8px] border-gray-800">
+                  <div className="bg-white rounded-[2.2rem] overflow-hidden w-[280px] h-[580px] relative flex flex-col">
+                    {/* Phone Header */}
+                    <div className="h-6 bg-gray-900 w-1/3 mx-auto rounded-b-2xl mb-4" />
+                    
+                    <div className="px-5 pt-2 pb-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-xs">N</div>
+                        <div className="flex gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">Habitación 204</p>
-                        <p className="text-xs text-gray-400">Bienvenida, María</p>
+                      
+                      <h4 className="font-display font-bold text-xl text-gray-900 mb-1">¡Hola, Maria! 👋</h4>
+                      <p className="text-xs text-gray-400 mb-6">Habitación 402 • Gran Plaza Hotel</p>
+                      
+                      <div className="space-y-3 mb-8">
+                        {[
+                          { l: 'Room Service', i: '🍽️', c: 'bg-orange-50 text-orange-600' },
+                          { l: 'Limpieza', i: '✨', c: 'bg-blue-50 text-blue-600' },
+                          { l: 'Spa & Wellness', i: '💆‍♀️', c: 'bg-emerald-50 text-emerald-600' },
+                        ].map(item => (
+                          <div key={item.l} className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50 border border-gray-100">
+                            <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${item.c}`}>{item.i}</span>
+                            <span className="text-sm font-semibold text-gray-700">{item.l}</span>
+                            <div className="ml-auto w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm">
+                              <Icon name="arrow_right" className="w-3 h-3 text-gray-400" />
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="ml-auto flex gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm" />
-                        <span className="w-2 h-2 rounded-full bg-amber-300 shadow-sm" />
-                        <span className="w-2 h-2 rounded-full bg-red-300 shadow-sm" />
+                      
+                      <div className="bg-brand-600 rounded-3xl p-5 text-white shadow-lg shadow-brand-600/30">
+                        <p className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Tu Asistente</p>
+                        <p className="text-sm font-bold mb-4">¿Necesitas algo más?</p>
+                        <button className="w-full py-2 bg-white text-brand-600 rounded-xl text-xs font-bold shadow-sm">
+                          Chatear con Recepción
+                        </button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      {[
-                        { label: 'Limpieza', icon: '🧹' },
-                        { label: 'Room Service', icon: '🍽️' },
-                        { label: 'Toallas', icon: '🧴' },
-                        { label: 'Desayuno', icon: '☕' },
-                      ].map((item) => (
-                        <motion.div
-                          key={item.label}
-                          whileHover={{ scale: 1.05, y: -2 }}
-                          className="rounded-xl px-3.5 py-3 text-center cursor-pointer bg-gradient-to-b from-brand-50 to-white border border-brand-100 hover:border-brand-200 hover:shadow-md transition-all"
-                        >
-                          <span className="text-sm mb-1 block">{item.icon}</span>
-                          <p className="text-[11px] font-medium text-brand-700">{item.label}</p>
-                        </motion.div>
-                      ))}
+                    
+                    {/* Bottom Bar */}
+                    <div className="mt-auto h-16 border-t border-gray-100 flex items-center justify-around px-6">
+                      <div className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
                     </div>
-                    <motion.div
-                      whileHover={{ scale: 1.02 }}
-                      className="rounded-xl p-4 flex items-center justify-between cursor-pointer bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-lg shadow-brand-500/20"
-                    >
-                      <div>
-                        <p className="text-xs text-white/70">Solicitar ahora</p>
-                        <p className="text-sm font-semibold text-white">Asistencia en habitación</p>
-                      </div>
-                      <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                        <Icon name="bell" className="text-white w-5 h-5" />
-                      </div>
-                    </motion.div>
-                  </motion.div>
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
@@ -559,15 +543,133 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ===== FEATURES BENTO GRID ===== */}
+      <section id="features" className="relative z-10 py-32 px-6">
+        <div className="max-w-6xl mx-auto relative">
+          <SectionHeading
+            label="Ecosistema"
+            title="Diseñado para la excelencia"
+            desc="Una suite de herramientas integradas que modernizan cada interacción entre tu hotel y el huésped."
+          />
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Main Feature - QR Portal */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="md:col-span-2 relative group overflow-hidden glass rounded-4xl p-10 border border-white/60 bg-gradient-to-br from-brand-50 to-white"
+            >
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="w-14 h-14 rounded-2xl bg-brand-600 flex items-center justify-center mb-8 shadow-lg shadow-brand-600/20">
+                  <Icon name="qr" className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="font-display text-3xl font-bold text-gray-900 mb-4">Portal del Huésped vía QR</h3>
+                <p className="text-gray-500 text-lg leading-relaxed max-w-md mb-8">
+                  Sin fricción. Sin apps. Tus huéspedes acceden instantáneamente a servicios, menús y asistencia con un simple escaneo desde su propio móvil.
+                </p>
+                <div className="mt-auto flex items-center gap-4">
+                  <span className="px-4 py-2 rounded-full bg-brand-100 text-brand-700 text-sm font-bold">Mobile First</span>
+                  <span className="px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold">Zero Friction</span>
+                </div>
+              </div>
+              <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                <img src={images.qrAction} alt="QR Scan" className="w-full h-full object-cover" />
+              </div>
+              <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-brand-500/5 rounded-full blur-3xl" />
+            </motion.div>
+
+            {/* Reception Panel */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="relative group overflow-hidden glass rounded-4xl p-10 border border-white/60 bg-white"
+            >
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center mb-8 shadow-lg shadow-amber-500/20">
+                  <Icon name="reception" className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="font-display text-2xl font-bold text-gray-900 mb-4">Panel de Recepción</h3>
+                <p className="text-gray-500 leading-relaxed">
+                  Gestión centralizada en tiempo real. Responde a solicitudes en segundos y mejora la eficiencia operativa.
+                </p>
+              </div>
+              <div className="mt-8 h-40 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden relative">
+                <div className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:scale-110 transition-transform duration-700" style={{ backgroundImage: `url(${images.reception})` }} />
+              </div>
+            </motion.div>
+
+            {/* Room Service / Services */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="relative group overflow-hidden glass rounded-4xl p-10 border border-white/60 bg-white"
+            >
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-brand-600 flex items-center justify-center mb-8 shadow-lg shadow-brand-600/20">
+                  <Icon name="service" className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="font-display text-2xl font-bold text-gray-900 mb-4">Servicios Ilimitados</h3>
+                <p className="text-gray-500 leading-relaxed">
+                  Desde gastronomía hasta spa. Configura todo tu catálogo y permite pedidos instantáneos.
+                </p>
+              </div>
+              <div className="mt-8 h-40 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden relative">
+                <div className="absolute inset-0 bg-cover bg-center opacity-50 group-hover:scale-110 transition-transform duration-700" style={{ backgroundImage: `url(${images.roomService})` }} />
+              </div>
+            </motion.div>
+
+            {/* Analytics & Reports */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="md:col-span-2 relative group overflow-hidden glass rounded-4xl p-10 border border-white/60 bg-gradient-to-br from-gray-900 to-gray-800 text-white"
+            >
+              <div className="relative z-10 flex flex-col md:flex-row gap-10 h-full">
+                <div className="flex-1">
+                  <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-8 border border-white/20">
+                    <Icon name="analytics" className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="font-display text-3xl font-bold mb-4">Analytics Avanzado</h3>
+                  <p className="text-white/60 text-lg leading-relaxed">
+                    Entiende el comportamiento de tus huéspedes. Identifica servicios populares, horas pico y cuellos de botella antes de que ocurran.
+                  </p>
+                </div>
+                <div className="flex-1 flex items-end justify-center pt-8">
+                  <div className="flex items-end gap-2 w-full h-32">
+                    {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ height: 0 }}
+                        whileInView={{ height: `${h}%` }}
+                        transition={{ delay: i * 0.1, duration: 1 }}
+                        className="flex-1 bg-brand-400 rounded-t-lg"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* ===== TESTIMONIALS ===== */}
-      <section id="testimonials" className="relative z-10 py-20 px-6">
+      <section id="testimonials" className="relative z-10 py-32 px-6 bg-surface-1">
         <div className="max-w-6xl mx-auto">
           <SectionHeading
-            label="Testimonios"
-            title="Lo que dicen nuestros primeros usuarios"
-            desc="Hoteles que ya están usando Nesti durante la beta."
+            label="Confianza"
+            title="Lo que dicen nuestros aliados"
+            desc="Hoteles que ya están transformando su operación con Nesti."
           />
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((t, i) => (
               <motion.div
                 key={t.hotel}
@@ -576,96 +678,39 @@ export default function Landing() {
                 whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
                 custom={i * 0.12}
-                whileHover={{ y: -4, transition: { duration: 0.3 } }}
-                className="glass rounded-3xl p-7 hover:shadow-glass-lg transition-all duration-500 border border-white/60"
+                className="glass rounded-4xl p-8 hover:shadow-float transition-all duration-500 border border-white relative group"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-brand-100 to-brand-200 flex items-center justify-center text-sm font-semibold text-brand-700 shrink-0 shadow-sm">
-                    {t.initials}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{t.hotel}</p>
-                    <p className="text-xs text-gray-400">{t.flag}</p>
-                  </div>
+                <div className="absolute top-8 right-8 text-brand-100 group-hover:text-brand-200 transition-colors">
+                  <svg width="40" height="30" viewBox="0 0 40 30" fill="currentColor">
+                    <path d="M0 18.5C0 8.2 8.3 0 18.5 0v6.2c-6.8 0-12.3 5.5-12.3 12.3h12.3v11.5H0V18.5zm21.5 0C21.5 8.2 29.8 0 40 0v6.2c-6.8 0-12.3 5.5-12.3 12.3H40v11.5H21.5V18.5z"/>
+                  </svg>
                 </div>
-                <div className="flex gap-0.5 mb-4">
+                
+                <div className="flex gap-1 mb-6">
                   {Array.from({ length: t.rating }).map((_, s) => (
-                    <motion.svg
-                      key={s}
-                      initial={{ opacity: 0, scale: 0 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 + s * 0.05 }}
-                      viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-amber-400"
-                    >
+                    <svg key={s} viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-amber-400">
                       <path d="M10 1l2.39 4.84L17.6 6.7l-3.8 3.7.9 5.24L10 13.2l-4.7 2.44.9-5.24-3.8-3.7 5.21-.86L10 1z"/>
-                    </motion.svg>
+                    </svg>
                   ))}
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed italic">"{t.quote}"</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ===== FEATURES ===== */}
-      <section id="features" className="relative z-10 py-20 px-6">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand-50/30 to-transparent pointer-events-none" />
-        <div className="max-w-6xl mx-auto relative">
-          <SectionHeading
-            label="Funcionalidades"
-            title="Todo lo que tu hotel necesita"
-            desc="Una plataforma completa para gestionar la experiencia de tus huéspedes desde el check-in hasta el check-out."
-          />
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: 'hotel', title: 'Portal del huésped',
-                desc: 'Cada habitación tiene su propio portal accesible vía QR. Los huéspedes solicitan servicios al instante.',
-                gradient: 'from-brand-50 to-brand-100/50',
-              },
-              {
-                icon: 'reception', title: 'Panel de recepción',
-                desc: 'Gestiona solicitudes en tiempo real. Asigna personal, actualiza estados y recibe notificaciones al instante.',
-                gradient: 'from-brand-50 to-brand-100/50',
-              },
-              {
-                icon: 'analytics', title: 'Analytics e informes',
-                desc: 'Visualiza métricas clave, servicios más solicitados, horas pico y tendencias de ocupación.',
-                gradient: 'from-amber-50 to-amber-100/50',
-              },
-              {
-                icon: 'service', title: 'Catálogo de servicios',
-                desc: 'Configura servicios ilimitados por categoría: limpieza, alimentos, logística y más.',
-                gradient: 'from-brand-50 to-brand-100/50',
-              },
-              {
-                icon: 'qr', title: 'Códigos QR únicos',
-                desc: 'Genera códigos QR personalizados para cada habitación. Listos para imprimir y colocar.',
-                gradient: 'from-brand-50 to-brand-100/50',
-              },
-              {
-                icon: 'smartphone', title: 'Sin instalación',
-                desc: 'Experiencia mobile-first que funciona desde el navegador. Sin descargas ni configuraciones.',
-                gradient: 'from-amber-50 to-amber-100/50',
-              },
-            ].map((f, i) => (
-              <motion.div
-                key={f.title}
-                variants={fadeUp}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: '-40px' }}
-                custom={i * STAGGER}
-                whileHover={{ y: -6, transition: { duration: 0.3 } }}
-                className={`glass rounded-3xl p-7 hover:shadow-glass-lg transition-all duration-500 border border-white/60 bg-gradient-to-br ${f.gradient}`}
-              >
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-100 to-brand-50 border border-brand-200/50 flex items-center justify-center mb-5 shadow-sm">
-                  <Icon name={f.icon} className="w-6 h-6 text-brand-600" />
+                <p className="text-gray-700 leading-relaxed text-lg mb-8 italic relative z-10">
+                  "{t.quote}"
+                </p>
+
+                <div className="flex items-center gap-4 border-t border-gray-100 pt-6">
+                  <img 
+                    src={t.avatar} 
+                    alt={t.name} 
+                    className="w-14 h-14 rounded-2xl object-cover shadow-sm border-2 border-white"
+                  />
+                  <div>
+                    <p className="font-bold text-gray-900">{t.name}</p>
+                    <p className="text-sm text-gray-500 flex items-center gap-2">
+                      {t.hotel} <span>{t.flag}</span>
+                    </p>
+                  </div>
                 </div>
-                <h3 className="font-display text-lg font-semibold text-gray-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
           </div>
